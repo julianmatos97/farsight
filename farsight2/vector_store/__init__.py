@@ -1,0 +1,1 @@
+"""Vector store module for storing and retrieving document chunk embeddings.""" 
