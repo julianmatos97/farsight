@@ -23,35 +23,36 @@ from farsight2.database.repository import (
     ChartRepository
 )
 
+from farsight2.embedding.unified_embedding_service import UnifiedEmbeddingService
+from farsight2.database.unified_repository import UnifiedRepository
+
 logger = logging.getLogger(__name__)
 
 class DocumentProcessor:
     """Processor for extracting content from 10-K/10-Q filings."""
     
-    def __init__(self, output_dir: Optional[str] = None):
+    def __init__(self, embedding_service=None, repository=None):
         """Initialize the document processor.
         
         Args:
-            output_dir: Directory to save processed documents
+            embedding_service: Unified embedding service
+            repository: Unified repository
         """
-        self.output_dir = output_dir or os.path.join(os.path.dirname(__file__), "../../data/processed")
+        self.repository = repository or UnifiedRepository()
+        self.embedding_service = embedding_service or UnifiedEmbeddingService(repository=self.repository)
+        self.output_dir = os.path.join(os.path.dirname(__file__), "../../data/processed")
         os.makedirs(self.output_dir, exist_ok=True)
     
-    def process_filing(self, file_path: str, metadata: DocumentMetadata) -> ParsedDocument:
+    def process_filing(self, content: str, metadata: DocumentMetadata) -> ParsedDocument:
         """Process a filing and extract its content.
         
         Args:
-            file_path: Path to the filing file
+            content: Content of the filing
             metadata: Metadata for the filing
             
         Returns:
             ParsedDocument containing the extracted content
         """
-        logger.info(f"Processing filing: {file_path}")
-        
-        # Read the file content
-        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
-            content = f.read()
         
         # Extract filing date if not already set
         if metadata.filing_date is None:
@@ -74,10 +75,7 @@ class DocumentProcessor:
             tables=tables,
             charts=charts
         )
-        
-        # Save the parsed document
-        self._save_parsed_document(parsed_document)
-        
+    
         # Save to database
         self._save_to_database(parsed_document)
         
@@ -102,30 +100,161 @@ class DocumentProcessor:
         return datetime.now()
     
     def _extract_text_chunks(self, content: str, document_id: str) -> List[TextChunk]:
-        """Extract text chunks from the document content."""
-        # This is a simplified implementation
-        # In a real implementation, you would use more sophisticated text extraction
+        """
+        Extract text chunks from HTML document content.
         
-        # Split content into sections based on headers
-        sections = re.split(r'(ITEM\s+\d+\..*?)(?=ITEM\s+\d+\.|\Z)', content, flags=re.IGNORECASE)
+        Args:
+            content: HTML content of the document
+            document_id: ID of the document
+            
+        Returns:
+            List of TextChunk objects
+        """
+        from bs4 import BeautifulSoup
+        import re
         
+        # Parse HTML content
+        soup = BeautifulSoup(content, 'html.parser')
+        
+        # Remove script and style elements that aren't relevant
+        for element in soup(["script", "style", "head", "meta", "link"]):
+            element.extract()
+        
+        # Look for common 10-K/10-Q section patterns
         text_chunks = []
-        for i in range(0, len(sections) - 1, 2):
-            if i + 1 < len(sections):
-                header = sections[i].strip()
-                body = sections[i + 1].strip()
+        
+        # Try to find sections based on SEC's common structure
+        # Method 1: Look for heading elements with ITEM patterns
+        item_headings = soup.find_all(['h1', 'h2', 'h3', 'h4', 'div', 'p', 'section' ], 
+                                     string=re.compile(r'^\s*ITEM\s+\d+', re.IGNORECASE))
+        
+        # If we found item headings, extract content between them
+        if item_headings:
+            logger.info(f"Found {len(item_headings)} SEC item headings")
+            
+            for i, heading in enumerate(item_headings):
+                # Get section title from the heading
+                section_title = heading.get_text().strip()
                 
-                if header and body:
-                    chunk_id = f"{document_id}_text_{i//2}"
+                # Get all content until the next heading or end
+                content_elements = []
+                current = heading.next_sibling
+                
+                # If this is the last heading, collect all remaining siblings
+                if i == len(item_headings) - 1:
+                    while current:
+                        if current.name and current.get_text().strip():
+                            content_elements.append(current)
+                        current = current.next_sibling
+                else:
+                    # Collect siblings until we hit the next heading
+                    next_heading = item_headings[i+1]
+                    while current and current != next_heading:
+                        if current.name and current.get_text().strip():
+                            content_elements.append(current)
+                        current = current.next_sibling
+                
+                # Combine the text from all elements
+                section_text = ""
+                for element in content_elements:
+                    if element.name:
+                        # Special handling for tables
+                        if element.name == 'table':
+                            section_text += self._extract_table_text(element) + "\n\n"
+                        else:
+                            section_text += element.get_text().strip() + "\n\n"
+                
+                # Create a text chunk for this section
+                if section_text.strip():
+                    chunk_id = f"{document_id}_text_{i}"
                     text_chunks.append(TextChunk(
                         chunk_id=chunk_id,
                         document_id=document_id,
-                        text=body,
-                        section=header,
-                        page_number=None  # Would require PDF parsing to get page numbers
+                        text=section_text.strip(),
+                        section=section_title,
+                        page_number=None  # SEC HTML files don't have page numbers
                     ))
         
+        # Method 2: If method 1 didn't find any sections, look for divs with specific classes
+        # SEC often uses div elements with specific classes for sections
+        if not text_chunks:
+            logger.info("Falling back to div-based section detection")
+            
+            # Look for common section containers in SEC documents
+            section_divs = soup.find_all(['div', 'section'], class_=re.compile(r'(section|part|item)', re.IGNORECASE))
+            
+            for i, div in enumerate(section_divs):
+                # Try to find a heading within this div
+                heading = div.find(['h1', 'h2', 'h3', 'h4'])
+                section_title = heading.get_text().strip() if heading else f"Section {i+1}"
+                
+                # Get the text content
+                section_text = div.get_text().strip()
+                
+                # Create a text chunk
+                if section_text:
+                    chunk_id = f"{document_id}_text_{i}"
+                    text_chunks.append(TextChunk(
+                        chunk_id=chunk_id,
+                        document_id=document_id,
+                        text=section_text,
+                        section=section_title,
+                        page_number=None
+                    ))
+        
+        # Method 3: As a last resort, chunk the document by size if no sections found
+        if not text_chunks:
+            logger.warning("No sections found, chunking document by size")
+            
+            # Extract text only from paragraph, div, and section elements
+            text_elements = soup.find_all(['p', 'div', 'section'])
+            full_text = ""
+            for element in text_elements:
+                # Only get direct text from these elements, not nested elements
+                # This avoids duplicating text from nested elements
+                element_text = ''.join(child for child in element.contents 
+                                      if isinstance(child, str)).strip()
+                if element_text:
+                    full_text += element_text + "\n\n"
+            
+            # Split into chunks of approximately 2000 characters each
+            chunk_size = 2000
+            chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
+            for i, chunk_text in enumerate(chunks):
+                if chunk_text.strip():
+                    chunk_id = f"{document_id}_text_{i}"
+                    text_chunks.append(TextChunk(
+                        chunk_id=chunk_id,
+                        document_id=document_id,
+                        text=chunk_text.strip(),
+                        section=f"Chunk {i+1}",
+                        page_number=None
+                    ))
+        logger.info(f"Extracted {len(text_chunks)} text chunks from document")
         return text_chunks
+    
+    def _extract_table_text(self, table_element) -> str:
+        """Extract readable text from an HTML table element."""
+        rows = []
+        
+        # Process each row
+        for tr in table_element.find_all('tr'):
+            row_cells = []
+            
+            # Process cells (both th and td)
+            for cell in tr.find_all(['th', 'td']):
+                # Get just the text, stripping whitespace
+                text = cell.get_text().strip()
+                # Replace multiple spaces and newlines with a single space
+                text = re.sub(r'\s+', ' ', text)
+                row_cells.append(text)
+            
+            if row_cells:  # Skip empty rows
+                # Join the cells with pipe separators for readability
+                rows.append(' | '.join(row_cells))
+        
+        # Join rows with newlines
+        return '\n'.join(rows)
     
     def _extract_tables(self, content: str, document_id: str) -> List[Table]:
         """Extract tables from the document content."""
@@ -264,4 +393,6 @@ class DocumentProcessor:
             
             logger.info(f"Saved document {parsed_document.document_id} to database")
         except Exception as e:
-            logger.error(f"Error saving document to database: {e}") 
+            import traceback
+            logger.error(f"Error saving document to database: {e} {traceback.format_exc()}")
+

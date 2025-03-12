@@ -19,7 +19,7 @@ from farsight2.database.repository_factory import RepositoryFactory
 
 logger = logging.getLogger(__name__)
 
-class Repository:
+class UnifiedRepository:
     """Unified repository class that combines all repositories."""
     
     def __init__(self):

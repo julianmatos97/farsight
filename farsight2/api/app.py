@@ -2,15 +2,17 @@
 
 import logging
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from farsight2 import vector_store
 from farsight2.document_processing.edgar_client import EdgarClient
 from farsight2.document_processing.document_processor import DocumentProcessor
-from farsight2.embedding.embedder import Embedder
+from farsight2.embedding.unified_embedding_service import UnifiedEmbeddingService
+from farsight2.models.models import DocumentMetadata, ParsedDocument
 from farsight2.vector_store.vector_store import VectorStore
 from farsight2.query_processing.query_analyzer import QueryAnalyzer
 from farsight2.query_processing.document_selector import DocumentSelector
@@ -18,9 +20,13 @@ from farsight2.query_processing.content_retriever import ContentRetriever
 from farsight2.query_processing.response_generator import ResponseGenerator
 from farsight2.database.db import get_db_session, init_db
 from farsight2.database.repository import (
-    DocumentRepository
-)
+    DocumentRepository,
 
+
+)
+from dotenv import load_dotenv
+load_dotenv()
+from farsight2.database.unified_repository import UnifiedRepository
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -78,28 +84,27 @@ def get_components(db: Session = Depends(get_db_session)):
         raise HTTPException(status_code=500, detail="OpenAI API key not found")
     
     # Create repositories
-    document_repo = DocumentRepository(db)
-    
+    document_repo = DocumentRepository(db)   
+    unified_repository = UnifiedRepository() 
     # Create components
     edgar_client = EdgarClient()
     document_processor = DocumentProcessor()
-    embedder = Embedder(api_key=api_key)
-    vector_store = VectorStore()
+    embedding_service = UnifiedEmbeddingService(api_key=api_key, repository=unified_repository)
     query_analyzer = QueryAnalyzer(api_key=api_key)
     document_selector = DocumentSelector(document_repo.get_document_registry())
-    content_retriever = ContentRetriever(vector_store, embedder, api_key=api_key)
+    content_retriever = ContentRetriever(embedding_service, unified_repository)
     response_generator = ResponseGenerator(document_repo.get_document_metadata_store(), api_key=api_key)
     
     return {
         "edgar_client": edgar_client,
         "document_processor": document_processor,
-        "embedder": embedder,
-        "vector_store": vector_store,
+        "embedding_service": embedding_service,
         "query_analyzer": query_analyzer,
         "document_selector": document_selector,
         "content_retriever": content_retriever,
         "response_generator": response_generator,
-        "document_repo": document_repo
+        "document_repo": document_repo,
+        "unified_repository": unified_repository
     }
 
 @app.get("/")
@@ -114,10 +119,9 @@ async def process_document(request: ProcessDocumentRequest, components=Depends(g
         # Get components
         edgar_client: EdgarClient = components["edgar_client"]
         document_processor: DocumentProcessor = components["document_processor"]
-        embedder: Embedder = components["embedder"]
-        vector_store: VectorStore = components["vector_store"]
+        embedding_service: UnifiedEmbeddingService = components["embedding_service"]
         document_repo: DocumentRepository = components["document_repo"]
-        
+        unified_repository: UnifiedRepository = components["unified_repository"]
         # Validate filing type
         if request.filing_type not in ["10-K", "10-Q"]:
             raise HTTPException(status_code=400, detail="Invalid filing type. Must be 10-K or 10-Q")
@@ -133,16 +137,21 @@ async def process_document(request: ProcessDocumentRequest, components=Depends(g
             logger.error(f"Error getting company filings: {e}")
             raise HTTPException(status_code=500, detail=f"Error getting company filings: {str(e)}")
         
-        # Find the requested filing
-        # This is a simplified implementation
-        # In a real implementation, you would parse the filings to find the right one
-        # accession_number = f"{request.ticker}_{request.filing_type}_{request.year}"
-        # if request.quarter:
-        #     accession_number += f"_Q{request.quarter}"
+ 
         
         # Download the filing
-        try:
-            filing_result = edgar_client.download_filing(
+        if document := unified_repository.get_document(request.ticker, request.year, request.quarter, request.filing_type):
+            return {
+                "document_id": document.document_id,
+                "ticker": request.ticker,
+                "year": request.year,
+                "quarter": request.quarter,
+                "filing_type": request.filing_type,
+                "filing_date": document.filing_date.isoformat() if document.filing_date else None,
+                "status": "success"
+            }
+        try:    
+            filing_result: Dict[str, str | DocumentMetadata] = edgar_client.download_filing(
                 ticker=request.ticker,
                 filing_type=request.filing_type,
                 year=request.year,
@@ -154,8 +163,8 @@ async def process_document(request: ProcessDocumentRequest, components=Depends(g
         
         # Process the filing
         try:
-            parsed_document = document_processor.process_filing(
-                file_path=filing_result["file_path"],
+            parsed_document: ParsedDocument = document_processor.process_filing(        
+                content=filing_result["content"],
                 metadata=filing_result["metadata"]
             )
         except Exception as e:
@@ -171,7 +180,7 @@ async def process_document(request: ProcessDocumentRequest, components=Depends(g
         
         # Generate embeddings
         try:
-            embedded_chunks = embedder.embed_document(parsed_document)
+            embedded_chunks = embedding_service.embed_document(parsed_document)
         except Exception as e:
             logger.error(f"Error generating embeddings: {e}")
             raise HTTPException(status_code=500, detail=f"Error generating embeddings: {str(e)}")

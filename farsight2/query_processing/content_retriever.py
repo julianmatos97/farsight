@@ -12,30 +12,23 @@ from farsight2.models.models import (
     DocumentReference,
     RelevantChunk
 )
-from farsight2.vector_store.vector_store import VectorStore
-from farsight2.embedding.embedder import Embedder
+from farsight2.embedding.unified_embedding_service import UnifiedEmbeddingService
+from farsight2.database.unified_repository import UnifiedRepository
 
 logger = logging.getLogger(__name__)
 
 class ContentRetriever:
     """Retriever for finding the most relevant chunks for a query."""
     
-    def __init__(self, vector_store: VectorStore, embedder: Embedder, api_key: Optional[str] = None):
+    def __init__(self, embedding_service=None, repository=None):
         """Initialize the content retriever.
         
         Args:
-            vector_store: Vector store containing document chunk embeddings
-            embedder: Embedder for generating query embeddings
-            api_key: OpenAI API key
+            embedding_service: Unified embedding service for generating query embeddings
+            repository: Repository for database access
         """
-        self.vector_store = vector_store
-        self.embedder = embedder
-        
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OpenAI API key is required")
-        
-        self.client = OpenAI(api_key=self.api_key)
+        self.repository = repository or UnifiedRepository()
+        self.embedding_service = embedding_service or UnifiedEmbeddingService(repository=self.repository)
         
         # Default model for reranking
         self.model = "gpt-4o"
@@ -56,48 +49,20 @@ class ContentRetriever:
         """
         logger.info(f"Retrieving content for query: {query}")
         
-        # Generate embedding for the query
-        query_embedding = self._generate_query_embedding(query)
-        
-        # Get document IDs from references
-        document_ids = [ref.document_id for ref in document_references]
-        
-        # Retrieve relevant chunks from the vector store
-        all_chunks = []
-        for doc_id in document_ids:
-            # Search the vector store for chunks from this document
-            filter_dict = {"document_id": doc_id}
-            chunks = self.vector_store.search(query_embedding, top_k=5, filter_dict=filter_dict)
-            all_chunks.extend(chunks)
+        # Retrieve relevant chunks from the unified embedding service
+        relevant_chunks = self.embedding_service.search_documents(query, document_references, top_k)
         
         # Sort by relevance score
-        all_chunks.sort(key=lambda x: x.relevance_score, reverse=True)
+        relevant_chunks.sort(key=lambda x: x.relevance_score, reverse=True)
         
         # Take the top k chunks
-        top_chunks = all_chunks[:top_k]
+        top_chunks = relevant_chunks[:top_k]
         
         # Rerank the chunks using the LLM if we have more than a few
         if len(top_chunks) > 3:
             top_chunks = self._rerank_chunks(query, top_chunks)
         
         return top_chunks
-    
-    def _generate_query_embedding(self, query: str) -> List[float]:
-        """Generate an embedding for a query."""
-        # Use the embedder to generate the embedding
-        # This is a simplified implementation
-        # In a real implementation, you would use the embedder's API
-        
-        # Create a dummy document chunk for the query
-        dummy_chunk = {
-            "content": query,
-            "content_type": "query"
-        }
-        
-        # Generate embedding
-        embedding = self.embedder._generate_embedding(query)
-        
-        return embedding
     
     def _rerank_chunks(self, query: str, chunks: List[RelevantChunk]) -> List[RelevantChunk]:
         """Rerank chunks using an LLM to better match the query intent."""

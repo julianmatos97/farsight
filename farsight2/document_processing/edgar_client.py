@@ -8,6 +8,9 @@ import os
 import json
 from datetime import datetime
 
+from farsight2.database.unified_repository import UnifiedRepository
+from farsight2.models.models import DocumentMetadata
+
 logger = logging.getLogger(__name__)
 
 class EdgarClient:
@@ -26,6 +29,7 @@ class EdgarClient:
         """
         self.download_dir = download_dir or os.path.join(os.path.dirname(__file__), "../../data/downloads")
         os.makedirs(self.download_dir, exist_ok=True)
+        self.repository = UnifiedRepository()
         
         # Cache for CIK lookups to minimize API calls
         self.cik_cache = {}
@@ -68,7 +72,12 @@ class EdgarClient:
         response = self._make_request(url)
         data = response.json()
 
-        logger.info(f"Fetched company filings: {data}")
+        # Log a simpler message and dump the full data to a file for inspection
+        logger.info(f"Fetched company filings for {ticker}")
+        debug_file = os.path.join(self.download_dir, f"{ticker}_filings_debug.json")
+        with open(debug_file, 'w') as f:
+            json.dump(data, f, indent=4)
+        logger.info(f"Saved detailed filing data to {debug_file}")
         
         # Cache the CIK if we found it
         if data and not ticker.upper() in self.cik_cache:
@@ -77,7 +86,7 @@ class EdgarClient:
             
         return data
     
-    def find_filing_url(self, ticker: str, year: int, quarter: Optional[int], filing_type: str) -> str:
+    def find_filing_url(self, ticker: str, year: int, quarter: Optional[int], filing_type: str) -> Dict[str, Any]:
         """Find the URL for a specific filing using the submissions API.
         
         Args:
@@ -101,10 +110,10 @@ class EdgarClient:
             raise Exception(f"No recent filings found for {ticker}")
         
         # The filings data is in a columnar format where each property is an array
-        form_array = recent_filings.get("fillings", [])
+        form_array = recent_filings.get("form", [])
         filing_date_array = recent_filings.get("filingDate", [])
         accession_number_array = recent_filings.get("accessionNumber", [])
-        
+        primary_document_array = recent_filings.get("primaryDocument", [])
         if not form_array or not filing_date_array or not accession_number_array:
             raise Exception(f"Missing filing data for {ticker}")
         
@@ -114,7 +123,6 @@ class EdgarClient:
             form = form_array[i]
             filing_date = filing_date_array[i]
             accession_number = accession_number_array[i]
-            
             # Parse the filing date to get the year and quarter
             try:
                 date_obj = datetime.strptime(filing_date, "%Y-%m-%d")
@@ -142,11 +150,11 @@ class EdgarClient:
         
         # Create the URL for the filing
         cik = self._format_cik(ticker)
-        url = f"{self.ARCHIVE_URL}/edgar/data/{int(cik)}/{accession_number_clean}/{accession_number}-index.html"
+        url = f"{self.ARCHIVE_URL}/edgar/data/{int(cik)}/{accession_number_clean}/{accession_number}.txt"
         
-        return url
+        return {"url": url, "accession_number": accession_number, "filing_date": date_obj}
     
-    def download_filing(self, ticker: str, year: int, quarter: Optional[int], filing_type: str) -> str:
+    def download_filing(self, ticker: str, year: int, quarter: Optional[int], filing_type: str) -> Dict[str, Any]:
         """
         Download a filing from SEC EDGAR.
         
@@ -162,78 +170,40 @@ class EdgarClient:
         Raises:
             Exception: If the filing cannot be found or downloaded
         """
-        # Create filing-specific directory
-        filing_dir = os.path.join(self.download_dir, ticker)
-        os.makedirs(filing_dir, exist_ok=True)
         
-        # Determine the output path
-        if quarter:
-            output_path = os.path.join(filing_dir, f"{ticker}_{filing_type}_{year}_Q{quarter}.html")
-        else:
-            output_path = os.path.join(filing_dir, f"{ticker}_{filing_type}_{year}.html")
+
         
-        # If the file already exists, return the path
-        if os.path.exists(output_path):
-            logger.info(f"Filing already downloaded: {output_path}")
-            return output_path
         
         try:
             # Find the filing URL using the submissions API
             logger.info(f"Searching for {filing_type} filing for {ticker} {year}" + 
                        (f" Q{quarter}" if quarter else ""))
             
-            filing_index_url = self.find_filing_url(ticker, year, quarter, filing_type)
-            
+            fill_url_data = self.find_filing_url(ticker, year, quarter, filing_type)
+            filing_url = fill_url_data["url"]
+            filing_date = fill_url_data["filing_date"]
             # Download the index page
-            index_response = self._make_request(filing_index_url)
+            index_response = self._make_request(filing_url)
             
             # Parse the index page to find the actual document URL
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(index_response.content, 'html.parser')
+
             
-            # Find the document table
-            doc_table = soup.find('table', summary='Document Format Files')
-            if not doc_table:
-                raise Exception(f"Could not find document table in index page: {filing_index_url}")
-            
-            # Find the HTML document link
-            doc_link = None
-            logger.info(f"Searching for {filing_type} document in table with {len(doc_table.find_all('tr'))} rows")
-            for row in doc_table.find_all('tr'):
-                cells = row.find_all('td')
-                if len(cells) >= 3:
-                    doc_type = cells[0].get_text().strip()
-                    doc_description = cells[1].get_text().strip()
-                    
-                    logger.debug(f"Found document: type={doc_type}, description={doc_description}")
-                    
-                    if ('10-K' in doc_type or '10-Q' in doc_type) and \
-                       ('html' in doc_description.lower() or 
-                        'htm' in doc_description.lower() or 
-                        cells[2].find('a', href=True)):
-                        doc_link = cells[2].find('a', href=True)
-                        logger.info(f"Found matching document: {doc_type} - {doc_description}")
-                        break
-            
-            if not doc_link or not doc_link.get('href'):
-                raise Exception(f"Could not find document link in index page: {filing_index_url}")
-            
-            # Construct the document URL
-            doc_url = "https://www.sec.gov" + doc_link['href']
-            
-            # Download the document
-            logger.info(f"Downloading filing from {doc_url}")
-            doc_response = self._make_request(doc_url)
-            
-            # Save the filing
-            with open(output_path, "wb") as f:
-                f.write(doc_response.content)
-            
-            logger.info(f"Filing downloaded to {output_path}")
-            return output_path
+            return {"content": soup.prettify(), 
+                    "metadata": DocumentMetadata(
+                        document_id=f"{ticker}_{year}_{quarter}_{filing_type}",
+                        ticker=ticker, 
+                        year=year, 
+                        quarter=quarter, 
+                        filing_type=filing_type, 
+                        filing_date=filing_date
+                    )}
             
         except Exception as e:
-            logger.exception(f"Error downloading filing: {str(e)}")
+            import traceback
+            
+            logger.exception(f"Error downloading filing: {str(e)} {traceback.format_exc()}")
             raise
     
     def _format_cik(self, ticker: str) -> str:

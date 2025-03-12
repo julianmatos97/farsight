@@ -15,15 +15,16 @@ class DocumentMetadata(BaseModel):
     ticker: str = Field(..., description="Company ticker symbol")
     year: int = Field(..., description="Filing year")
     quarter: Optional[int] = Field(None, description="Filing quarter (null for 10-K)")
-    filing_type: Literal["10-K", "10-Q"] = Field(..., description="Filing type")
-    filing_date: Optional[datetime] = Field(None, description="Filing date")
+    filing_type: Literal["10-K", "10-Q"] = Field(default=..., description="Filing type")
+    filing_date: Optional[datetime] = Field(default=None, description="Filing date")
+    content: Optional[str] = Field(default=None, description="Filing content")
     
 class TextChunk(BaseModel):
     """A chunk of text from a document."""
     chunk_id: str = Field(..., description="Unique chunk ID")
     document_id: str = Field(..., description="ID of parent document")
     text: str = Field(..., description="Text content")
-    section: str = Field(..., description="Section in document")
+    section: Optional[str] = Field(None, description="Section in document")
     page_number: Optional[int] = Field(None, description="Page number")
     
 class Table(BaseModel):

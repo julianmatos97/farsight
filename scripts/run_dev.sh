@@ -14,7 +14,6 @@ fi
 
 # Start the PostgreSQL container
 echo "Starting PostgreSQL container..."
-docker-compose build --no-cache postgres
 docker-compose up -d postgres
 
 # Wait for PostgreSQL to be ready

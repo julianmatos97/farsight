@@ -125,9 +125,14 @@ class DocumentRepository:
         Returns:
             Created document
         """
+
+        if document := self.get_document(document_metadata.document_id):
+            return document
         # Ensure the company exists
         company_repo = CompanyRepository(self.db)
         company_repo.get_or_create_company(document_metadata.ticker)
+
+
         
         # Create the document
         document = Document(
@@ -688,7 +693,7 @@ class TextChunkRepository:
         db_text_chunk = TextChunkDB(
             chunk_id=text_chunk.chunk_id,
             document_id=text_chunk.document_id,
-            text=text_chunk.text,
+            text=" ".join(text_chunk.text.split()),
             section=text_chunk.section,
             page_number=text_chunk.page_number
         )
