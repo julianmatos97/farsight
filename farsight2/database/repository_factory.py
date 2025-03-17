@@ -1,6 +1,6 @@
 """Factory for creating repository instances."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
 from farsight2.database.db import get_db_session
 from farsight2.database.repository import (
@@ -8,6 +8,7 @@ from farsight2.database.repository import (
     DocumentRepository,
     ChunkRepository,
     EmbeddingRepository,
+    FactRepository,
     TestSuiteRepository,
     EvaluationRepository,
     TextChunkRepository,
@@ -73,7 +74,15 @@ class RepositoryFactory:
         return ChartRepository(session)
     
     @staticmethod
-    def create_all_repositories() -> Dict[str, Any]:
+    def create_fact_repository():
+        """Create a fact repository."""
+        session = get_db_session()
+        return FactRepository(session)
+    
+
+    
+    @staticmethod
+    def create_all_repositories() -> Dict[str, Union[CompanyRepository, DocumentRepository, ChunkRepository, EmbeddingRepository, TestSuiteRepository, EvaluationRepository, TextChunkRepository, TableRepository, ChartRepository, FactRepository]]:
         """Create all repositories."""
         session = get_db_session()
         return {
@@ -85,5 +94,6 @@ class RepositoryFactory:
             'evaluation': EvaluationRepository(session),
             'text_chunk': TextChunkRepository(session),
             'table': TableRepository(session),
-            'chart': ChartRepository(session)
+            'chart': ChartRepository(session),
+            'fact': FactRepository(session)
         } 

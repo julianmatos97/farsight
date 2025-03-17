@@ -1,13 +1,16 @@
 """Unified repository class that combines all repositories."""
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import logging
+import numpy as np
 
 from farsight2.models.models import (
     Company as CompanyModel,
     DocumentMetadata,
     DocumentChunk as DocumentChunkModel,
     EmbeddedChunk,
+    Fact,
+    FactValue,
     RelevantChunk,
     TestSuite as TestSuiteModel,
     EvaluationResults as EvaluationResultsModel,
@@ -20,7 +23,7 @@ from farsight2.database.repository_factory import RepositoryFactory
 logger = logging.getLogger(__name__)
 
 class UnifiedRepository:
-    """Unified repository class that combines all repositories."""
+    """Unified repository class that combines all repositories for the Postgres database."""
     
     def __init__(self):
         """Initialize the repository."""
@@ -213,3 +216,192 @@ class UnifiedRepository:
         """Get an evaluation by name."""
         evaluation = self._repos['evaluation'].get_evaluation(name)
         return self._repos['evaluation'].to_model(evaluation) if evaluation else None 
+    
+    def create_fact(self, fact: Fact) -> Fact:
+        """
+        Create a fact definition in the database.
+        
+        Args:
+            fact: Fact model with definition information
+            
+        Returns:
+            The created fact
+        """
+        db_fact = self._repos['fact'].create_fact(fact)
+        return self._repos['fact'].fact_to_model(db_fact)
+    
+    def get_fact(self, fact_id: str) -> Optional[Fact]:
+        """
+        Get a fact by ID.
+        
+        Args:
+            fact_id: Unique fact identifier
+            
+        Returns:
+            Fact if found, None otherwise
+        """
+        db_fact = self._repos['fact'].get_fact(fact_id)
+        return self._repos['fact'].fact_to_model(db_fact) if db_fact else None
+    
+    def get_all_facts(self) -> List[Fact]:
+        """
+        Get all facts.
+        
+        Returns:
+            List of all facts in the database
+        """
+        facts = self._repos['fact'].get_all_facts()
+        return [self._repos['fact'].fact_to_model(fact) for fact in facts]
+    
+    def get_facts_by_taxonomy(self, taxonomy: str) -> List[Fact]:
+        """
+        Get facts by taxonomy.
+        
+        Args:
+            taxonomy: Taxonomy name (e.g., 'us-gaap', 'dei')
+            
+        Returns:
+            List of facts belonging to the specified taxonomy
+        """
+        facts = self._repos['fact'].get_facts_by_taxonomy(taxonomy)
+        return [self._repos['fact'].fact_to_model(fact) for fact in facts]
+    
+    def get_primary_facts(self) -> List[Fact]:
+        """
+        Get primary financial metrics.
+        
+        Returns:
+            List of facts marked as primary financial metrics
+        """
+        facts = self._repos['fact'].get_primary_facts()
+        return [self._repos['fact'].fact_to_model(fact) for fact in facts]
+    
+    def create_fact_value(self, fact_value: FactValue) -> FactValue:
+        """
+        Create a fact value in the database.
+        
+        Args:
+            fact_value: FactValue model with the actual data point
+            
+        Returns:
+            The created fact value
+        """
+        db_fact_value = self._repos['fact'].create_fact_value(fact_value)
+        return self._repos['fact'].fact_value_to_model(db_fact_value)
+    
+    def get_fact_value(self, fact_value_id: str) -> Optional[FactValue]:
+        """
+        Get a fact value by ID.
+        
+        Args:
+            fact_value_id: Unique fact value identifier
+            
+        Returns:
+            FactValue if found, None otherwise
+        """
+        db_fact_value = self._repos['fact'].get_fact_value(fact_value_id)
+        return self._repos['fact'].fact_value_to_model(db_fact_value) if db_fact_value else None
+    
+    def get_fact_value_by_details(self, fact_id: str, document_id: str, 
+                                 fiscal_year: int, fiscal_period: str) -> Optional[FactValue]:
+        """
+        Get a fact value by its details.
+        
+        Args:
+            fact_id: Fact identifier
+            document_id: Document identifier
+            fiscal_year: Fiscal year
+            fiscal_period: Fiscal period (e.g., 'Q1', 'FY')
+            
+        Returns:
+            FactValue if found, None otherwise
+        """
+        db_fact_value = self._repos['fact'].get_fact_value_by_details(
+            fact_id, document_id, fiscal_year, fiscal_period
+        )
+        return self._repos['fact'].fact_value_to_model(db_fact_value) if db_fact_value else None
+    
+    def get_fact_values_by_ticker(self, ticker: str) -> List[FactValue]:
+        """
+        Get all fact values for a company.
+        
+        Args:
+            ticker: Company ticker symbol
+            
+        Returns:
+            List of fact values for the company
+        """
+        fact_values = self._repos['fact'].get_fact_values_by_ticker(ticker)
+        return [self._repos['fact'].fact_value_to_model(fv) for fv in fact_values]
+    
+    def get_fact_values_by_document(self, document_id: str) -> List[FactValue]:
+        """
+        Get all fact values for a document.
+        
+        Args:
+            document_id: Document identifier
+            
+        Returns:
+            List of fact values associated with the document
+        """
+        fact_values = self._repos['fact'].get_fact_values_by_document(document_id)
+        return [self._repos['fact'].fact_value_to_model(fv) for fv in fact_values]
+    
+    def get_fact_values_by_fact(self, fact_id: str, ticker: str = None, 
+                               limit: int = 20) -> List[FactValue]:
+        """
+        Get values for a specific fact, optionally filtered by company.
+        
+        Args:
+            fact_id: Fact identifier
+            ticker: Optional company ticker to filter by
+            limit: Maximum number of values to return
+            
+        Returns:
+            List of fact values for the specified fact
+        """
+        fact_values = self._repos['fact'].get_fact_values_by_fact(fact_id, ticker, limit)
+        return [self._repos['fact'].fact_value_to_model(fv) for fv in fact_values]
+    
+    def search_facts_by_query(self, query: str, top_k: int = 5) -> List[Tuple[Fact, float]]:
+        """
+        Search for facts using semantic similarity to a query.
+        
+        Args:
+            query: Search query
+            top_k: Number of results to return
+            
+        Returns:
+            List of tuples containing (fact, similarity_score)
+        """
+        try:
+            # Get all facts with embeddings
+            facts = self.get_all_facts()
+            facts_with_embeddings = [f for f in facts if f.embedding is not None]
+            
+            if not facts_with_embeddings:
+                logger.warning("No facts with embeddings found")
+                return []
+            
+            # Get embeddings list
+            embeddings = [f.embedding for f in facts_with_embeddings]
+            
+            # Search using fact embedder
+            top_indices = self.fact_embedder.search_facts(query, embeddings, top_k)
+            
+            # Get similarities for the top results
+            query_embedding = self.fact_embedder.model.encode(query)
+            similarities = [
+                float(np.dot(facts_with_embeddings[i].embedding, query_embedding) /
+                     (np.linalg.norm(facts_with_embeddings[i].embedding) * np.linalg.norm(query_embedding)))
+                for i in top_indices
+            ]
+            
+            # Return facts with their similarity scores
+            return [(facts_with_embeddings[i], similarities[j]) for j, i in enumerate(top_indices)]
+        except Exception as e:
+            logger.error(f"Error searching facts: {str(e)}")
+            return []
+    
+ 
+    

@@ -10,6 +10,8 @@ from farsight2.database.models import (
     Document,
     DocumentChunk,
     ChunkEmbedding,
+    Fact,
+    FactValue,
     TestSuite,
     TestQuestion,
     EvaluationResult,
@@ -23,6 +25,8 @@ from farsight2.models.models import (
     DocumentMetadata,
     DocumentChunk as DocumentChunkModel,
     EmbeddedChunk,
+    Fact as FactModel,
+    FactValue as FactValueModel,
     TestSuite as TestSuiteModel,
     EvaluationResults as EvaluationResultsModel,
     TextChunk as TextChunkModel,
@@ -131,8 +135,6 @@ class DocumentRepository:
         # Ensure the company exists
         company_repo = CompanyRepository(self.db)
         company_repo.get_or_create_company(document_metadata.ticker)
-
-
         
         # Create the document
         document = Document(
@@ -240,7 +242,7 @@ class DocumentRepository:
         """
         documents = self.get_all_documents()
         registry = {}
-        
+        # TODO - why are we loading this all into memory?
         for document in documents:
             if document.ticker not in registry:
                 registry[document.ticker] = []
@@ -407,10 +409,13 @@ class EmbeddingRepository:
         Returns:
             List of tuples containing document chunks and their similarity scores
         """
-        # Start with a base query
+        # Convert query embedding to array for pgvector
+        query_vector = query_embedding
+        
+        # Start with a base query using pgvector's cosine_distance
         query = self.db.query(
             DocumentChunk,
-            func.cosine_similarity(ChunkEmbedding.embedding, query_embedding).label("similarity")
+            (1 - ChunkEmbedding.embedding.cosine_distance(query_vector)).label("similarity")  # Convert distance to similarity
         ).join(
             ChunkEmbedding, DocumentChunk.chunk_id == ChunkEmbedding.chunk_id
         )
@@ -422,8 +427,8 @@ class EmbeddingRepository:
             if "content_type" in filter_dict:
                 query = query.filter(DocumentChunk.content_type == filter_dict["content_type"])
         
-        # Order by similarity and limit to top_k
-        results = query.order_by(func.cosine_similarity(ChunkEmbedding.embedding, query_embedding).desc()).limit(top_k).all()
+        # Order by similarity (descending) and limit to top_k
+        results = query.order_by(text("similarity DESC")).limit(top_k).all()
         
         # Convert to list of tuples
         return [(chunk, float(similarity)) for chunk, similarity in results]
@@ -902,3 +907,226 @@ class ChartRepository:
             section=chart.section,
             page_number=chart.page_number
         ) 
+    
+class FactRepository:
+    """Repository for fact operations."""
+    
+    def __init__(self, db: Session):
+        """Initialize the repository.
+
+        Args:
+            db: Database session
+        """
+        self.db = db
+    
+    def create_fact(self, fact: FactModel) -> Fact:
+        """Create a fact.
+        
+        Args:
+            fact: Fact model
+            
+        Returns:
+            Created fact
+        """ 
+        db_fact = Fact(
+            fact_id=fact.fact_id,
+            label=fact.label,
+            description=fact.description,
+            taxonomy=fact.taxonomy,
+            fact_type=fact.fact_type,
+            period_type=fact.period_type,
+            embedding=fact.embedding if fact.embedding else None
+        )
+        self.db.add(db_fact)
+        self.db.commit()
+        self.db.refresh(db_fact)
+        return db_fact
+    
+    def get_fact(self, fact_id: str) -> Optional[Fact]:
+        """Get a fact by ID.
+
+        Args:
+            fact_id: Fact ID
+            
+        Returns:
+            Fact if found, None otherwise
+        """
+        return self.db.query(Fact).filter(Fact.fact_id == fact_id).first()
+    
+    def get_all_facts(self) -> List[Fact]:
+        """Get all facts.
+        
+        Returns:
+            List of facts
+        """
+        return self.db.query(Fact).all()
+    
+    def fact_to_model(self, fact: Fact) -> FactModel:
+        """Convert a fact entity to a model.
+        
+        Args:
+            fact: Fact entity
+            
+        Returns:    
+            Fact model
+        """
+        return FactModel(
+            fact_id=fact.fact_id,
+            label=fact.label,
+            description=fact.description,
+            taxonomy=fact.taxonomy,
+            fact_type=fact.fact_type,
+            period_type=fact.period_type,
+        )
+    
+    def create_fact_value(self, fact_value: FactValueModel) -> FactValue:
+        """Create a fact value.
+        
+        Args:
+            fact_value: Fact value model
+
+        Returns:
+            Created fact value
+        """
+        db_fact_value = FactValue(
+            fact_id=fact_value.fact_id,
+            ticker=fact_value.ticker,
+            value=fact_value.value,
+            document_id=fact_value.document_id,
+            filing_type=fact_value.filing_type,
+            accession_number=fact_value.accession_number,
+            start_date=fact_value.start_date,
+            end_date=fact_value.end_date,
+            fiscal_year=fact_value.fiscal_year,
+            fiscal_period=fact_value.fiscal_period,
+            unit=fact_value.unit,
+            decimals=fact_value.decimals,
+            year_over_year_change=fact_value.year_over_year_change,
+            quarter_over_quarter_change=fact_value.quarter_over_quarter_change,
+            form=fact_value.form
+        )
+        self.db.add(db_fact_value)
+        self.db.commit()
+        self.db.refresh(db_fact_value)
+        return db_fact_value
+
+    def get_fact_value(self, fact_value_id: str) -> Optional[FactValue]:
+        """Get a fact value by ID.
+        
+        Args:
+            fact_value_id: Fact value ID
+            
+        Returns:
+            Fact value if found, None otherwise
+        """
+        return self.db.query(FactValue).filter(FactValue.fact_value_id == fact_value_id).first()
+    
+    def get_all_fact_values(self) -> List[FactValue]:
+        """Get all fact values.
+            
+        Returns:
+            List of fact values
+        """
+        return self.db.query(FactValue).all()
+    
+    def fact_value_to_model(self, fact_value: FactValue) -> FactValueModel:
+        """Convert a fact value entity to a model.
+
+        Args:
+            fact_value: Fact value entity
+            
+        Returns:
+            Fact value model
+        """ 
+        return FactValueModel(
+            fact_id=fact_value.fact_id,
+            ticker=fact_value.ticker,
+            value=fact_value.value,
+            document_id=fact_value.document_id,
+            filing_type=fact_value.filing_type,
+            accession_number=fact_value.accession_number,
+            start_date=fact_value.start_date,
+            end_date=fact_value.end_date,
+            fiscal_year=fact_value.fiscal_year,
+            fiscal_period=fact_value.fiscal_period,
+            unit=fact_value.unit,
+            decimals=fact_value.decimals,
+            year_over_year_change=fact_value.year_over_year_change,
+            quarter_over_quarter_change=fact_value.quarter_over_quarter_change,
+            form=fact_value.form
+        )
+    
+    def get_fact_values_by_fact(self, fact_id: str) -> List[FactValue]:
+        """Get all fact values for a fact.
+        
+        Args:
+            fact_id: Fact ID
+            
+        Returns:
+            List of fact values
+        """
+        return self.db.query(FactValue).filter(FactValue.fact_id == fact_id).all()
+    
+    def get_fact_value_by_details(self, fact_id: str, document_id: str, fiscal_year: int, fiscal_period: str) -> Optional[FactValue]:
+        """Get a fact value by its details.
+        
+        Args:
+            fact_id: Fact ID
+            document_id: Document ID
+            fiscal_year: Fiscal year
+            fiscal_period: Fiscal period
+            
+        Returns:
+            Fact value if found, None otherwise
+        """
+        return self.db.query(FactValue).filter(
+            FactValue.fact_id == fact_id,
+            FactValue.document_id == document_id,
+            FactValue.fiscal_year == fiscal_year,
+            FactValue.fiscal_period == fiscal_period
+        ).first()
+    
+    def search_facts_by_embedding(self, query_embedding: List[float], top_k: int = 5) -> List[Tuple[Fact, float]]:
+        """
+        Search for facts using vector similarity.
+        
+        Args:
+            query_embedding: Query vector
+            top_k: Number of results to return
+            
+        Returns:
+            List of tuples containing (fact, similarity_score)
+        """
+        # Convert query embedding to array
+        query_vector = query_embedding
+        
+        # Use cosine similarity with pgvector
+        results = (
+            self.db.query(
+                Fact,
+                Fact.embedding.cosine_distance(query_vector).label('distance')
+            )
+            .filter(Fact.embedding != None)
+            .order_by('distance')
+            .limit(top_k)
+            .all()
+        )
+        
+        # Convert distance to similarity score (cosine distance = 1 - cosine similarity)
+        return [(fact, 1 - distance) for fact, distance in results]
+    
+    def search_facts_by_text(self, query: str, embedding_service, top_k: int = 5) -> List[Tuple[Fact, float]]:
+        """
+        Search for facts using text query.
+        
+        Args:
+            query: Text query
+            embedding_service: Service to generate embeddings
+            top_k: Number of results to return
+            
+        Returns:
+            List of tuples containing (fact, similarity_score)
+        """
+        # Generate embedding for the query
+        query_embedding = embedding_service.generate_embedding(query)
+        return self.search_facts_by_embedding(query_embedding, top_k)
