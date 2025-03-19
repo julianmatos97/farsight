@@ -8,7 +8,7 @@ from farsight2.models.models import (
     TextChunk,
     Table,
     Chart,
-    ParsedDocument
+    ParsedDocument,
 )
 
 
@@ -20,7 +20,7 @@ def create_mock_document():
         year=2023,
         quarter=None,
         filing_type="10-K",
-        filing_date=datetime(2023, 12, 31)
+        filing_date=datetime(2023, 12, 31),
     )
 
 
@@ -31,7 +31,7 @@ def create_mock_document_chunk():
         document_id="DOC123",
         content="Test content for the document chunk.",
         content_type="text",
-        location="Section 1"
+        location="Section 1",
     )
 
 
@@ -42,7 +42,7 @@ def create_mock_text_chunk():
         document_id="DOC123",
         text="Test text content.",
         section="Section 1",
-        page_number=1
+        page_number=1,
     )
 
 
@@ -55,7 +55,7 @@ def create_mock_table():
         table_data=[["Data"]],
         caption="Test Table",
         section="Section 2",
-        page_number=2
+        page_number=2,
     )
 
 
@@ -67,7 +67,7 @@ def create_mock_chart():
         chart_data={"type": "bar", "data": [1, 2, 3]},
         caption="Test Chart",
         section="Section 3",
-        page_number=3
+        page_number=3,
     )
 
 
@@ -77,7 +77,7 @@ def create_mock_parsed_document():
         document_id="DOC123",
         text_chunks=[create_mock_text_chunk()],
         tables=[create_mock_table()],
-        charts=[create_mock_chart()]
+        charts=[create_mock_chart()],
     )
 
 
@@ -114,11 +114,11 @@ def create_mock_test_suite():
         "questions": [
             "What was Apple's revenue in 2023?",
             "What are the main risk factors for Apple?",
-            "How did Apple's revenue change from 2022 to 2023?"
+            "How did Apple's revenue change from 2022 to 2023?",
         ],
         "expected_answers": [
             "Apple's revenue in 2023 was $394.3 billion.",
             "Apple's business, operating results, and financial condition are subject to various risks and uncertainties.",
-            "Apple's revenue decreased by 3% from 2022 to 2023."
-        ]
-    } 
+            "Apple's revenue decreased by 3% from 2022 to 2023.",
+        ],
+    }

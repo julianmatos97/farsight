@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 # Get database URL from environment
 # Use different defaults based on environment (Docker vs local)
 DATABASE_URL = os.environ.get(
-    "DATABASE_URL", 
+    "DATABASE_URL",
     # Default to Docker-compatible URL if no environment variable set
-    "postgresql://postgres:postgres@localhost:5432/postgres"
+    "postgresql://postgres:postgres@localhost:5432/postgres",
 )
 
 # Create engine and session
@@ -28,10 +28,11 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+
 def get_db_session():
     """
     Get a database session.
-    
+
     Returns:
         SQLAlchemy session object
     """
@@ -40,6 +41,7 @@ def get_db_session():
         return session
     finally:
         session.close()
+
 
 def test_connection():
     """Test database connection and provide helpful message if it fails."""
@@ -59,10 +61,11 @@ def test_connection():
             logger.error(f"Database connection error: {str(e)}")
         return False
 
+
 def init_db():
     """
     Initialize the database schema.
-    
+
     This function checks if the database is properly set up and
     creates the necessary tables if they don't exist.
     """
@@ -70,35 +73,36 @@ def init_db():
         raise Exception("Failed to connect to database")
 
     # Import models here to avoid circular imports
-    
+
     # Create tables
     logger.info("Creating database tables...")
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables created successfully")
 
+
 def get_connection_params() -> Dict[str, Any]:
     """Get database connection parameters from the DATABASE_URL.
-    
+
     Returns:
         Dict[str, Any]: Database connection parameters
     """
     # Parse the DATABASE_URL
     if "://" not in DATABASE_URL:
         return {}
-    
+
     # Split the URL into parts
     url_parts = DATABASE_URL.split("://")[1].split("@")
     auth_parts = url_parts[0].split(":")
     host_parts = url_parts[1].split("/")
     host_port = host_parts[0].split(":")
-    
+
     # Extract the parameters
     params = {
         "user": auth_parts[0],
         "password": auth_parts[1],
         "host": host_port[0],
         "port": int(host_port[1]) if len(host_port) > 1 else 5432,
-        "database": host_parts[1]
+        "database": host_parts[1],
     }
-    
-    return params 
+
+    return params

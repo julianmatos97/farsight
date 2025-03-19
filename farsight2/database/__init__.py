@@ -1,1 +1,1 @@
-"""Database module for Farsight2.""" 
+"""Database module for Farsight2."""

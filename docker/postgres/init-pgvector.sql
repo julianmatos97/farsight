@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 CREATE TABLE IF NOT EXISTS chunk_embeddings (
     id SERIAL PRIMARY KEY,
     chunk_id TEXT REFERENCES document_chunks(chunk_id),
-    embedding vector(1536),
+    embedding vector(3072),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -9,8 +9,12 @@ from sqlalchemy.orm import sessionmaker
 
 from farsight2.database.db import Base
 from farsight2.database.models import (
-    Company, Document, DocumentChunk, ChunkEmbedding,
-    TextChunkDB, TableDB, ChartDB
+    Company,
+    Document,
+    DocumentChunk,
+    ChunkEmbedding,
+    TextChunkDB,
+    TableDB,
 )
 from farsight2.database.unified_repository import UnifiedRepository
 from farsight2.embedding.unified_embedding_service import UnifiedEmbeddingService
@@ -20,8 +24,11 @@ from farsight2.models.models import DocumentMetadata
 @pytest.fixture(scope="session")
 def test_db_url():
     """Create a test database URL."""
-    # Use SQLite for testing to avoid PostgreSQL dependency
-    return "sqlite:///:memory:"
+    # Use PostgreSQL for testing to ensure pgvector compatibility
+    return os.environ.get(
+        "TEST_DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/postgres_test",
+    )
 
 
 @pytest.fixture(scope="function")
@@ -48,15 +55,15 @@ def repository(db_session):
     repo = UnifiedRepository()
     # Replace the database session with our test session
     repo._repos = {
-        'company': MagicMock(db=db_session),
-        'document': MagicMock(db=db_session),
-        'chunk': MagicMock(db=db_session),
-        'embedding': MagicMock(db=db_session),
-        'text_chunk': MagicMock(db=db_session),
-        'table': MagicMock(db=db_session),
-        'chart': MagicMock(db=db_session),
-        'test_suite': MagicMock(db=db_session),
-        'evaluation': MagicMock(db=db_session),
+        "company": MagicMock(db=db_session),
+        "document": MagicMock(db=db_session),
+        "chunk": MagicMock(db=db_session),
+        "embedding": MagicMock(db=db_session),
+        "text_chunk": MagicMock(db=db_session),
+        "table": MagicMock(db=db_session),
+        "chart": MagicMock(db=db_session),
+        "test_suite": MagicMock(db=db_session),
+        "evaluation": MagicMock(db=db_session),
     }
     return repo
 
@@ -66,14 +73,14 @@ def mock_openai():
     """Mock OpenAI API client."""
     mock_client = MagicMock()
     mock_response = MagicMock()
-    mock_response.data = [MagicMock(embedding=[0.1] * 1536)]
+    mock_response.data = [MagicMock(embedding=[0.1] * 3072)]
     mock_client.embeddings.create.return_value = mock_response
-    
+
     # Mock chat completions
     mock_chat_response = MagicMock()
     mock_chat_response.choices = [MagicMock(message=MagicMock(content="Test response"))]
     mock_client.chat.completions.create.return_value = mock_chat_response
-    
+
     return mock_client
 
 
@@ -94,7 +101,7 @@ def sample_document():
         year=2023,
         quarter=None,
         filing_type="10-K",
-        filing_date="2023-12-31"
+        filing_date="2023-12-31",
     )
 
 
@@ -105,4 +112,4 @@ def temp_file():
     temp.write(b"Test content for document processing")
     temp.close()
     yield temp.name
-    os.unlink(temp.name) 
+    os.unlink(temp.name)
