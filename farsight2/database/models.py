@@ -157,7 +157,7 @@ class FactValue(Base):
     start_date = Column(String, nullable=True)
     end_date = Column(String, nullable=True)
     fiscal_year = Column(Integer, nullable=True)
-    fiscal_period = Column(String, nullable=True)
+    fiscal_period = Column(Integer, nullable=True)
     unit = Column(String, default="USD")
     decimals = Column(Integer, nullable=True)
     year_over_year_change = Column(Float, nullable=True)
@@ -168,4 +168,4 @@ class FactValue(Base):
     fact = relationship("Fact", back_populates="fact_values")
 
     def __repr__(self) -> str:
-        return f"<FactValue(fact_id='{self.fact_id}', document_id='{self.document_id}', fiscal_year={self.fiscal_year}, fiscal_period='{self.fiscal_period}')>"
+        return f"<FactValue(value={self.value}, fact_id='{self.fact_id}', document_id='{self.document_id}', fiscal_year={self.fiscal_year}, fiscal_period='{self.fiscal_period}')>"

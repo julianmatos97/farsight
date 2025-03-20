@@ -9,13 +9,13 @@ This module provides command-line interface for:
 """
 
 import argparse
+import asyncio
 import logging
 import os
 import sys
 from typing import Dict, List, Any
 
-from farsight2.api.app import app
-from farsight2.evaluation.test_suite import TestSuiteGenerator, Evaluator
+from farsight2.api.app import ProcessDocumentRequest, app, process_document
 from farsight2.database.db import init_db
 
 # Configure logging
@@ -46,6 +46,19 @@ def init_database():
     init_db()
     logger.info("Database initialized")
 
+async def generate_test_suite():
+    for ticker in ["AAPL", "MSFT", "GOOG", "AMZN", "TSLA"]:
+        for year in range(2020, 2024):
+            for quarter in range(1, 5):
+                for filing_type in ["10K", "10Q"]:
+                    await process_document(
+                        ProcessDocumentRequest(
+                            ticker=ticker,
+                            year=year,
+                            quarter=quarter,
+                            filing_type=filing_type,
+                        )
+                    )
 
 def main():
     """
@@ -63,12 +76,14 @@ def main():
 
     # Init database command
     init_db_parser = subparsers.add_parser("init-db", help="Initialize the database")
+    generate_test_suite_parser = subparsers.add_parser("generate-test-suite", help="Generate a test suite")
 
     args = parser.parse_args()
 
     # Run the appropriate command
     if args.command == "api":
         run_api()
+
     elif args.command == "init-db":
         init_database()
     else:

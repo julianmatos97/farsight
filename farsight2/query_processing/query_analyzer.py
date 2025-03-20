@@ -48,27 +48,15 @@ class QueryAnalyzer:
         """
         logger.info(f"Analyzing query: {query}")
 
-        # Use a simple regex-based approach for basic queries
-        companies = self._extract_companies(query)
-        years = self._extract_years(query)
-        quarters = self._extract_quarters(query)
+    
+        llm_analysis = self._llm_analyze_query(query)
 
-        # For more complex queries, use LLM-based extraction
-        if not companies or not years:
-            llm_analysis = self._llm_analyze_query(query)
+        # Merge results, preferring regex results when available
+        companies = llm_analysis.get("companies", [])
+        years = llm_analysis.get("years", [])
+        quarters = llm_analysis.get("quarters", [1, 2, 3, 4])
+        topics = llm_analysis.get("topics", [])
 
-            # Merge results, preferring regex results when available
-            if not companies:
-                companies = llm_analysis.get("companies", [])
-            if not years:
-                years = llm_analysis.get("years", [])
-            if not quarters:
-                quarters = llm_analysis.get("quarters", [1, 2, 3, 4])
-
-            topics = llm_analysis.get("topics", [])
-        else:
-            # For simple queries, extract topics using regex
-            topics = self._extract_topics(query)
         query_analysis = QueryAnalysis(
             query=query,
             companies=companies,
@@ -186,6 +174,7 @@ class QueryAnalyzer:
             2. Years mentioned or implied
             3. Quarters mentioned or implied (1, 2, 3, or 4)
             4. Main topics or financial metrics of interest
+            5. Convert all company names to their ticker symbol (e.g. Apple -> AAPL)
             
             Query: {query}
             

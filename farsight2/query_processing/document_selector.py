@@ -13,13 +13,12 @@ logger = logging.getLogger(__name__)
 class DocumentSelector:
     """Selector for determining which documents are needed for a query."""
 
-    def __init__(self, document_registry: Dict[str, List[DocumentMetadata]]):
+    def __init__(self):
         """Initialize the document selector.
 
         Args:
             document_registry: Dictionary mapping company tickers to lists of document metadata
         """
-        self.document_registry = document_registry
         from farsight2.database.unified_repository import UnifiedRepository
 
         self.repository = UnifiedRepository()
@@ -61,9 +60,6 @@ class DocumentSelector:
         # For each company, find the relevant documents
         for company in companies:
             # Check if we have documents for this company
-            if company not in self.document_registry:
-                logger.warning(f"No documents found for company: {company}")
-                continue
 
             # Get all documents for this company
             company_documents = self.repository.get_documents_by_company(company)

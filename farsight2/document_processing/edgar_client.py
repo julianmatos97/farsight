@@ -9,7 +9,7 @@ import os
 import json
 from datetime import datetime
 
-from farsight2.constants import generate_document_id
+from farsight2.utils import generate_document_id
 from farsight2.database.unified_repository import UnifiedRepository
 from farsight2.models.models import DocumentMetadata, Fact, FactValue
 from farsight2.embedding.unified_embedding_service import UnifiedEmbeddingService
@@ -89,10 +89,7 @@ class EdgarClient:
 
         # Log a simpler message and dump the full data to a file for inspection
         logger.info(f"Fetched company filings for {ticker}")
-        debug_file = os.path.join(self.download_dir, f"{ticker}_filings_debug.json")
-        with open(debug_file, "w") as f:
-            json.dump(data, f, indent=4)
-        logger.info(f"Saved detailed filing data to {debug_file}")
+     
 
         # Cache the CIK if we found it
         if data and not ticker.upper() in self.cik_cache:
@@ -402,7 +399,6 @@ class EdgarClient:
 
                     # Generate embedding using the unified service
                     # TODO - we dont need to do this every time we download facts. check if the fact already exists in the database.
-                    fact.embedding = self.embedding_service.embed_fact(fact)
                     facts.append(fact)
 
                     # Process fact values for each unit type
@@ -442,7 +438,9 @@ class EdgarClient:
                                     start_date=start_date,
                                     end_date=end_date,
                                     fiscal_year=fy,
+                                    fiscal_period=fp,
                                     unit=unit_type,
+                                    form=form,
                                 )
                                 fact_values.append(fact_value)
                             except Exception as e:
@@ -482,10 +480,14 @@ class EdgarClient:
             try:
                 existing_fact = self.repository.get_fact(fact.fact_id)
                 if not existing_fact:
+                    fact.embedding = self.embedding_service.embed_fact(fact=fact)
                     self.repository.create_fact(fact)
                     saved_count += 1
                 else:
-                    skipped_count += 1
+                    if existing_fact.embedding is None:
+                        fact.embedding = self.embedding_service.embed_fact(fact=fact)
+                        self.repository.update_fact(fact)
+                    saved_count += 1
             except Exception as e:
                 logger.error(f"Error saving fact {fact.fact_id}: {str(e)}")
                 error_count += 1

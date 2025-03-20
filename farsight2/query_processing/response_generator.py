@@ -23,7 +23,7 @@ class ResponseGenerator:
     """Generator for creating responses based on relevant content."""
 
     def __init__(
-        self, document_metadata_store: Dict[str, Any], api_key: Optional[str] = None
+        self, api_key: Optional[str] = None
     ):
         """Initialize the response generator.
 
@@ -31,7 +31,6 @@ class ResponseGenerator:
             document_metadata_store: Dictionary mapping document IDs to metadata
             api_key: OpenAI API key
         """
-        self.document_metadata_store = document_metadata_store
         logger.info("Initializing ResponseGenerator")
 
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
@@ -50,7 +49,7 @@ class ResponseGenerator:
         self,
         query: str,
         relevant_chunks: List[RelevantChunk],
-        relevant_fact_values: Optional[List[FactValue]] = None,
+        relevant_fact_values: Optional[List[Tuple[FactValue, str]]] = None,
     ) -> FormattedResponse:
         """Generate a response based on relevant content.
 
@@ -72,7 +71,7 @@ class ResponseGenerator:
         # Prepare context from document chunks
         chunk_context = []
         for chunk in relevant_chunks:  # type: RelevantChunk
-            metadata = self.document_metadata_store.get(chunk.chunk.document_id, {})
+            metadata = {}
             context = {
                 "content": chunk.chunk.content[:10_000],
                 "content_type": chunk.chunk.content_type,
@@ -88,8 +87,11 @@ class ResponseGenerator:
 
         # Prepare context from XBRL facts
         fact_context = []
+
+
         if relevant_fact_values:
-            for fact_value in relevant_fact_values:  # type: FactValue
+            for fact_value, description in relevant_fact_values:  # type: Tuple[FactValue, str]
+                
                 logger.debug(f"Processing fact value: {fact_value.fact_id}")
                 fact_info = {
                     "fact_id": fact_value.fact_id,
@@ -102,6 +104,7 @@ class ResponseGenerator:
                             "ticker": fact_value.ticker,
                         }
                     ],
+                    "description": description,
                 }
                 fact_context.append(fact_info)
             logger.debug(f"Prepared {len(fact_context)} fact values for context")
@@ -230,8 +233,8 @@ class ResponseGenerator:
             # Try to match with XBRL facts
             fact_matched = False
             for fact in fact_context:
+                print(fact)
                 if fact["fact_id"] in entry:
-                    logger.debug(f"Matched entry with XBRL fact: {fact['fact_id']}")
                     # Create a citation for each value of the fact
                     for value in fact["values"]:
                         citations.append(

@@ -179,12 +179,12 @@ class UnifiedEmbeddingService:
         """
         try:
             # Truncate text if it's too long (model dependent)
-            max_tokens = 7000
-            if len(text) > max_tokens * 4:  # Rough estimation of tokens
+            max_tokens = 8192
+            if len(text) > max_tokens * 5:  # Rough estimation of tokens
                 logger.warning(
                     f"Text too long ({len(text)} chars), truncating to ~{max_tokens} tokens"
                 )
-                text = text[: max_tokens * 4]
+                text = text[: max_tokens * 5]
 
             # Generate embedding via OpenAI API
             response = self.client.embeddings.create(

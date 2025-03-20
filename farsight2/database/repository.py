@@ -3,9 +3,9 @@
 from typing import List, Dict, Any, Optional, Tuple
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import text
 
-from farsight2.constants import generate_document_id
+from farsight2.utils import generate_document_id
 from farsight2.database.models import (
     Company,
     Document,
@@ -24,11 +24,8 @@ from farsight2.models.models import (
     EmbeddedChunk,
     Fact as FactModel,
     FactValue as FactValueModel,
-    TestSuite as TestSuiteModel,
-    EvaluationResults as EvaluationResultsModel,
     TextChunk as TextChunkModel,
     Table as TableModel,
-    Chart as ChartModel,
 )
 
 
@@ -235,46 +232,7 @@ class DocumentRepository:
             filing_type=document.filing_type,
             filing_date=document.filing_date,
         )
-
-    def get_document_registry(self) -> Dict[str, List[DocumentMetadata]]:
-        """Get the document registry.
-
-        Returns:
-            Dictionary mapping company tickers to lists of document metadata
-        """
-        documents = self.get_all_documents()
-        registry = {}
-        # TODO - why are we loading this all into memory?
-        for document in documents:
-            if document.ticker not in registry:
-                registry[document.ticker] = []
-
-            registry[document.ticker].append(self.to_model(document))
-        print(f"Document registry: {registry}")
-        return registry
-
-    def get_document_metadata_store(self) -> Dict[str, Dict[str, Any]]:
-        """Get the document metadata store.
-
-        Returns:
-            Dictionary mapping document IDs to metadata dictionaries
-        """
-        documents = self.get_all_documents()
-        store = {}
-
-        for document in documents:
-            store[document.document_id] = {
-                "ticker": document.ticker,
-                "year": document.year,
-                "quarter": document.quarter,
-                "filing_type": document.filing_type,
-                "filing_date": document.filing_date.isoformat()
-                if document.filing_date
-                else None,
-            }
-
-        return store
-
+    
 
 class ChunkRepository:
     """Repository for document chunk operations."""
@@ -699,15 +657,34 @@ class FactRepository:
             List of facts
         """
         return self.db.query(Fact).all()
+    
+    def update_fact(self, fact: Fact) -> Fact:
+        """Update a fact.
+
+        Args:
+            fact: Fact model
+
+        Returns:
+            Updated fact
+        """
+        db_fact = self.get_fact(fact.fact_id)
+        if not db_fact:
+            raise ValueError(f"Fact not found: {fact.fact_id}")
+        db_fact.label = fact.label
+        db_fact.description = fact.description
+        db_fact.taxonomy = fact.taxonomy
+        db_fact.fact_type = fact.fact_type
+        db_fact.period_type = fact.period_type
+        db_fact.embedding = fact.embedding
+        self.db.commit()
+        self.db.refresh(db_fact)
+        return db_fact
 
     def fact_to_model(self, fact: Fact) -> FactModel:
         """Convert a fact entity to a model.
 
         Args:
             fact: Fact entity
-
-        Returns:
-            Fact model
         """
         return FactModel(
             fact_id=fact.fact_id,
@@ -809,7 +786,7 @@ class FactRepository:
             List of fact values
         """
         return self.db.query(FactValue).filter(FactValue.fact_id == fact_id).all()
-
+    
     def get_fact_value_by_details(
         self,
         fact_id: str,
@@ -822,9 +799,36 @@ class FactRepository:
 
         Args:
             fact_id: Fact ID
-            document_id: Document ID
-            fiscal_year: Fiscal year
-            fiscal_period: Fiscal period
+            ticker: Company ticker
+            year: Fiscal year
+            quarter: Fiscal period
+            filing_type: Filing type
+
+        Returns:
+            Fact value if found, None otherwise
+        """
+        document_id = generate_document_id(ticker, year, quarter, filing_type)
+        return self.db.query(FactValue).filter(
+            FactValue.fact_id == fact_id,
+            FactValue.document_id == document_id,
+        ).first()
+
+    def get_fact_values_by_details(
+        self,
+        fact_id: str,
+        ticker: str,
+        year: int,
+        quarter: Optional[int],
+        filing_type: str,
+    ) -> List[FactValue]:
+        """Get a fact value by its details.
+
+        Args:
+            fact_id: Fact ID
+            ticker: Company ticker
+            year: Fiscal year
+            quarter: Fiscal period
+            filing_type: Filing type
 
         Returns:
             Fact value if found, None otherwise
@@ -835,9 +839,12 @@ class FactRepository:
             self.db.query(FactValue)
             .filter(
                 FactValue.fact_id == fact_id,
+                FactValue.ticker == ticker,
                 FactValue.document_id == document_id,
             )
-            .first()
+            .order_by(FactValue.document_id.desc())
+            .limit(30)
+            .all() 
         )
 
     def search_facts_by_embedding(

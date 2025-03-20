@@ -128,7 +128,7 @@ def get_components(db: Session = Depends(get_db_session)):
         api_key=api_key, repository=unified_repository
     )
     query_analyzer = QueryAnalyzer(api_key=api_key)
-    document_selector = DocumentSelector(document_repo.get_document_registry())
+    document_selector = DocumentSelector()
     content_retriever = ContentRetriever(embedding_service, unified_repository)
     response_generator = ResponseGenerator(
         document_repo.get_document_metadata_store(), api_key=api_key
@@ -158,7 +158,6 @@ async def root():
 async def process_document(
     request: ProcessDocumentRequest,
     components=Depends(get_components),
-    db: Session = Depends(get_db_session),
 ):
     """
     Process a 10-K/10-Q document.
@@ -174,7 +173,6 @@ async def process_document(
     try:
         # Get components
         edgar_client: EdgarClient = components["edgar_client"]
-        fact_repo: FactRepository = components["fact_repo"]
         document_processor: DocumentProcessor = components["document_processor"]
         embedding_service: UnifiedEmbeddingService = components["embedding_service"]
         document_repo: DocumentRepository = components["document_repo"]
@@ -187,11 +185,9 @@ async def process_document(
             )
 
         # Validate quarter
-        if request.filing_type == "10-Q" and (
-            request.quarter is None or request.quarter not in [1, 2, 3]
-        ):
+        if  request.quarter not in [1, 2, 3, 4]:
             raise HTTPException(
-                status_code=400, detail="For 10-Q filings, quarter must be 1, 2, or 3"
+                status_code=400, detail="Quarter must be 1, 2, 3, or 4"
             )
 
         # Get company filings
@@ -222,7 +218,7 @@ async def process_document(
         try:
             # First time you see the company, download the XBRL facts
             if unified_repository.get_company(request.ticker) is None:
-                facts, fact_values = edgar_client.download_xbrl_facts(request.ticker)
+                facts, _ = edgar_client.download_xbrl_facts(request.ticker)
             else:
                 facts = []
                 fact_values = []
@@ -274,7 +270,7 @@ async def process_document(
 
         # Generate embeddings for document chunks
         try:
-            embedded_chunks = embedding_service.embed_document(parsed_document)
+            embedding_service.embed_document(parsed_document)
         except Exception as e:
             logger.error(f"Error generating embeddings: {e}")
             logger.error(traceback.format_exc())
@@ -320,7 +316,6 @@ async def process_document(
 async def query(
     request: QueryRequest,
     components=Depends(get_components),
-    db: Session = Depends(get_db_session),
 ):
     """
     Query the system with a natural language question.
@@ -388,14 +383,14 @@ async def query(
             for company in query_analysis.companies:
                 for year in query_analysis.years:
                     for quarter in [1, 2, 3, 4]:
-                        for filing_type in ["10-K", "10-Q"]:
-                            for fact in relevant_facts:
+                        for filing_type in ["10K", "10Q"]:
+                            for i, fact in enumerate(relevant_facts):
                                 # Get fact values for this company and year
-                                fact_value = fact_repo.get_fact_value_by_details(
+                                values_for_fact = unified_repository.get_fact_values_by_details(
                                     fact.fact_id, company, year, quarter, filing_type
                                 )
-                                if fact_value:
-                                    fact_values.append(fact_value)
+                                if values_for_fact:
+                                    fact_values.extend([(fact_value, relevant_facts[i].description) for fact_value in values_for_fact])
             logger.info(f"Fact values: {fact_values}")
 
         except Exception as e:
@@ -448,7 +443,7 @@ async def query(
             "response": formatted_response.response,
             "citations": citations,
             "documents_used": [doc.document_id for doc in document_references],
-            "facts_used": fact_values if fact_values else [],
+            "facts_used": [fact_value[0] for fact_value in fact_values] if fact_values else [],
         }
     except HTTPException:
         raise

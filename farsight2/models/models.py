@@ -278,7 +278,7 @@ class FactValue(BaseModel):
         None, description="End date of period (for all facts)"
     )
     fiscal_year: Optional[int] = Field(None, description="Fiscal year")
-    fiscal_period: Optional[str] = Field(
+    fiscal_period: Optional[int] = Field(
         None, description="Fiscal period (Q1, Q2, Q3, Q4, FY)"
     )
 

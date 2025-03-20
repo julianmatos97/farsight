@@ -13,7 +13,6 @@ from farsight2.database.repository import (
     TableRepository,
 )
 
-
 class RepositoryFactory:
     """Factory for creating repository instances."""
 

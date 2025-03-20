@@ -12,11 +12,8 @@ from farsight2.models.models import (
     Fact,
     FactValue,
     RelevantChunk,
-    TestSuite as TestSuiteModel,
-    EvaluationResults as EvaluationResultsModel,
     TextChunk as TextChunkModel,
     Table as TableModel,
-    Chart as ChartModel,
 )
 from farsight2.database.repository_factory import RepositoryFactory
 
@@ -192,21 +189,6 @@ class UnifiedRepository:
         table = self._repos["table"].get_table(chunk_id)
         return self._repos["table"].to_model(table) if table else None
 
-    # Test suite methods
-
-    def create_test_suite(
-        self, name: str, questions: List[str], expected_answers: List[str]
-    ) -> TestSuiteModel:
-        """Create a test suite."""
-        test_suite = self._repos["test_suite"].create_test_suite(
-            name, questions, expected_answers
-        )
-        return self._repos["test_suite"].to_model(test_suite)
-
-    def get_test_suite(self, name: str) -> Optional[TestSuiteModel]:
-        """Get a test suite by name."""
-        test_suite = self._repos["test_suite"].get_test_suite(name)
-        return self._repos["test_suite"].to_model(test_suite) if test_suite else None
 
     def create_fact(self, fact: Fact) -> Fact:
         """
@@ -246,6 +228,11 @@ class UnifiedRepository:
         """
         facts = self._repos["fact"].get_all_facts()
         return [self._repos["fact"].fact_to_model(fact) for fact in facts]
+    
+    def update_fact(self, fact: Fact) -> Fact:
+        """Update a fact."""
+        db_fact = self._repos["fact"].update_fact(fact)
+        return self._repos["fact"].fact_to_model(db_fact)
 
     def get_facts_by_taxonomy(self, taxonomy: str) -> List[Fact]:
         """
@@ -328,6 +315,31 @@ class UnifiedRepository:
             if db_fact_value
             else None
         )
+    
+    def get_fact_values_by_details(
+        self,
+        fact_id: str,
+        ticker: str,
+        year: int,
+        quarter: Optional[int],
+        filing_type: str,
+    ) -> List[FactValue]:
+        """Get a fact value by its details.
+
+        Args:
+            fact_id: Fact ID
+            ticker: Company ticker
+            year: Fiscal year
+            quarter: Fiscal period
+            filing_type: Filing type
+
+        Returns:
+            List of fact values for the specified details
+        """
+        db_fact_values = self._repos["fact"].get_fact_values_by_details(
+            fact_id, ticker, year, quarter, filing_type
+        )
+        return [self._repos["fact"].fact_value_to_model(fv) for fv in db_fact_values]
 
     def get_fact_values_by_ticker(self, ticker: str) -> List[FactValue]:
         """

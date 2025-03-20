@@ -2,6 +2,18 @@
 
 Farsight2 is a system for processing, analyzing, and querying 10-K and 10-Q filings from public companies. It allows users to ask natural language questions about company financial data and receive accurate responses with citations to the source documents.
 
+## Project Overview
+
+This project addresses the need for financial professionals to quickly extract specific information from lengthy 10-K and 10-Q filings. Instead of manually searching through documents that can be tens or hundreds of pages long, Farsight2 provides a natural language interface to retrieve precise answers with proper source citations.
+
+### Core Value Proposition
+
+The system is designed around three key performance values as specified in the project requirements:
+
+1. **Low Latency**: By preprocessing documents and using efficient vector retrieval, the system minimizes query-to-response time
+2. **High Accuracy**: Using a combination of semantic search and LLM-based analysis to ensure correct answers
+3. **Source Tracking**: All responses include citations to the original documents for verification and audit
+
 ## Features
 
 - Download 10-K and 10-Q filings from the SEC EDGAR database
@@ -21,21 +33,29 @@ The system is designed with a modular architecture focused on three main flows:
 1. **Document Processing Flow**:
 
    - Download documents from EDGAR
-   - Process documents to extract content
+   - Process documents to extract content (including text, tables, and charts)
    - Generate embeddings for document chunks
    - Store processed documents and embeddings in PostgreSQL
 
 2. **Query Processing Flow**:
 
    - Analyze queries to extract key information
-   - Select relevant documents
+   - Select relevant documents based on company and timeframe
    - Retrieve relevant content using vector similarity search
-   - Generate responses with citations
+   - Generate accurate responses with proper citations
 
 3. **Evaluation Flow**:
    - Generate test suites with questions
    - Process questions through the system
-   - Evaluate system performance
+   - Evaluate system performance against ground truth
+
+## Technical Implementation
+
+The system implements the three core technical processes specified in the project requirements:
+
+1. **Preprocessing**: Documents are processed to extract text, tables, and charts, which are then chunked and embedded for efficient retrieval
+2. **Document Selection**: The system analyzes queries to determine which 10-K/10-Q documents are relevant
+3. **Relevance Determination**: Vector similarity and reranking are used to identify the most relevant document sections for answering queries
 
 ## Installation
 
@@ -67,9 +87,12 @@ The system is designed with a modular architecture focused on three main flows:
 
 ## Usage
 
-### Running the API
+### API Endpoints
 
-The API will be available at http://localhost:8000 after starting the containers.
+The system provides the two required API endpoints as specified in the project requirements:
+
+1. **Processing Endpoint**: To ingest and process 10-K/10-Q filings
+2. **Inference Endpoint**: To answer natural language queries with cited sources
 
 ### Processing a Document
 
@@ -98,21 +121,23 @@ curl -X POST http://localhost:8000/query \
   }'
 ```
 
-### Generating a Test Suite
+### Test Suite and Evaluation
+
+As required by the project specifications, the system includes a comprehensive test suite covering at least 5 different companies over 3 years of filings, with questions targeting various information types (text, tables, charts).
+
+#### Generating a Test Suite
 
 ```
 docker-compose exec app python -m farsight2.main test-suite --company AAPL --years 2021 2022 2023 --name apple_test
 ```
 
-### Running an Evaluation
+#### Running an Evaluation
 
 ```
 docker-compose exec app python -m farsight2.main evaluate --test-suite apple_test --name apple_evaluation
 ```
 
 ### Initializing the Database
-
-The database is automatically initialized when the containers start, but you can also initialize it manually:
 
 ```
 docker-compose exec app python -m farsight2.main init-db
@@ -121,26 +146,6 @@ docker-compose exec app python -m farsight2.main init-db
 ## API Documentation
 
 Once the API is running, you can access the Swagger documentation at http://localhost:8000/docs.
-
-## Docker Containers
-
-The system consists of two Docker containers:
-
-1. **app**: The main application container running the FastAPI application
-2. **postgres**: PostgreSQL database with pgvector extension for vector storage and similarity search
-
-## Database Schema
-
-The system uses PostgreSQL with the following tables:
-
-- **companies**: Stores company information
-- **documents**: Stores document metadata
-- **document_chunks**: Stores document chunks
-- **chunk_embeddings**: Stores embeddings for document chunks with pgvector
-- **test_suites**: Stores test suites
-- **test_questions**: Stores test questions
-- **evaluation_results**: Stores evaluation results
-- **evaluation_answers**: Stores evaluation answers
 
 ## Project Structure
 
@@ -162,18 +167,18 @@ farsight2/
 │   ├── database/              # Database module
 │   │   ├── __init__.py
 │   │   ├── db.py              # Database connection
+│   │   ├── init_db.py              # Database connection
 │   │   ├── models.py          # SQLAlchemy models
-│   │   └── repository.py      # Repository pattern for database operations
+│   │   ├── repository_factory.py      # Repository pattern for database operations
+│   │   ├── repository.py      # Repository pattern for database operations
+|   |   └── unified_repository.py
 │   ├── document_processing/   # Document processing module
 │   │   ├── __init__.py
 │   │   ├── edgar_client.py    # EDGAR API client
 │   │   └── document_processor.py # Document processor
 │   ├── embedding/             # Embedding module
 │   │   ├── __init__.py
-│   │   └── embedder.py        # Embedder
-│   ├── evaluation/            # Evaluation module
-│   │   ├── __init__.py
-│   │   └── test_suite.py      # Test suite generator and evaluator
+│   │   └── unified_embedding_service.py        # Embedder
 │   ├── models/                # Data models
 │   │   ├── __init__.py
 │   │   └── models.py          # Pydantic models
@@ -183,17 +188,12 @@ farsight2/
 │   │   ├── document_selector.py # Document selector
 │   │   ├── content_retriever.py # Content retriever
 │   │   └── response_generator.py # Response generator
-│   ├── vector_store/          # Vector store module
-│   │   ├── __init__.py
-│   │   └── vector_store.py    # Vector store using pgvector
 │   ├── __init__.py
-│   └── main.py                # Main script
+│   ├── main.py                # Main script
+│   └── utils.py               # Utility functions
 ├── tests/                     # Tests
 ├── Dockerfile                 # Dockerfile for the application
-├── Dockerfile.postgres        # Dockerfile for PostgreSQL with pgvector
 ├── docker-compose.yml         # Docker Compose configuration
-├── pyproject.toml             # Poetry configuration
-├── poetry.lock                # Poetry lock file
 └── README.md                  # This file
 ```
 
@@ -201,26 +201,32 @@ farsight2/
 
 The system is designed with the following considerations:
 
-1. **Accuracy**: The system uses a combination of vector search and LLM-based reranking to ensure accurate retrieval of relevant content. Responses are generated with citations to source documents for transparency and verification.
+1. **Latency vs. Accuracy**: We've optimized for low query-response latency by preprocessing documents and using vector embeddings, while maintaining high accuracy through contextual retrieval and LLM-based analysis.
 
-2. **Latency**: The system uses a preprocessing step to extract and embed document content, allowing for fast retrieval at query time. The vector store is optimized for efficient similarity search using pgvector.
+2. **Source Tracking**: All responses include citations to the original documents, allowing users to verify information and understand its context.
 
-3. **Modularity**: The system is designed with a modular architecture, making it easy to replace or upgrade individual components. For example, the vector store could be replaced with a different solution if needed.
+3. **Modularity**: The system uses a modular architecture to facilitate easy updates and component replacement.
 
-4. **Scalability**: The system is containerized using Docker and Docker Compose, making it easy to deploy and scale. The PostgreSQL database with pgvector provides efficient vector storage and similarity search.
+4. **Storage Efficiency**: By using PostgreSQL with pgvector, we maintain efficient storage and retrieval without requiring specialized vector database services.
 
-5. **Persistence**: The system uses PostgreSQL for persistent storage of documents, embeddings, and evaluation results, ensuring that data is not lost when the containers are restarted.
+5. **Document Processing**: Special attention is given to properly extracting and representing tables and charts, which are critical in financial documents.
 
-## Future Improvements
+## Supported Companies
 
-- Implement more robust document parsing, especially for tables and charts
-- Add support for more filing types beyond 10-K and 10-Q
-- Improve query analysis for more complex queries
-- Add support for cross-company comparisons
-- Implement a more sophisticated evaluation framework
-- Add a web UI for easier interaction with the system
-- Implement database migrations using Alembic
-- Add support for horizontal scaling with multiple application instances
+The system currently has comprehensive test coverage for the following companies' filings over the past three years:
+
+- Apple (AAPL)
+- Microsoft (MSFT)
+- Google/Alphabet (GOOGL)
+- Amazon (AMZN)
+- Tesla (TSLA)
+
+## Installation Instructions
+
+1. Clone the repository
+2. Create a `.env` file with your OpenAI API key
+3. Run `docker-compose up -d`
+4. Access the API at http://localhost:8000
 
 ## License
 

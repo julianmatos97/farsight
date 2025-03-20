@@ -2,20 +2,16 @@
 
 import logging
 import re
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from datetime import datetime
-import os
-import json
 
 from farsight2.models.models import (
     DocumentMetadata,
     ParsedDocument,
     TextChunk,
     Table,
-    Chart,
 )
 
-from farsight2.database.db import SessionLocal
 
 from farsight2.embedding.unified_embedding_service import UnifiedEmbeddingService
 from farsight2.database.unified_repository import UnifiedRepository
