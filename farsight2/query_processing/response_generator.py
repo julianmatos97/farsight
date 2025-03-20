@@ -123,6 +123,8 @@ class ResponseGenerator:
         4. If information appears in both document text and Fact Values, prefer Fact Values
         5. Format tables and numerical data clearly
         6. Indicate if any part of the question cannot be answered with the available context
+        7. Numerical answers should be in the same unit as the question
+        8. Completely write out numbers, do not use abbreviations or units
         
         Format your response as follows:
         ANSWER: Your detailed answer here

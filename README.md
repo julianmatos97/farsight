@@ -22,7 +22,6 @@ The system is designed around three key performance values as specified in the p
 - Analyze natural language queries to understand intent
 - Retrieve relevant content from processed documents
 - Generate accurate responses with citations to source documents
-- Evaluate system performance using test suites
 - Containerized deployment with Docker and Docker Compose
 - PostgreSQL database with pgvector for vector storage and similarity search
 
@@ -33,29 +32,24 @@ The system is designed with a modular architecture focused on three main flows:
 1. **Document Processing Flow**:
 
    - Download documents from EDGAR
-   - Process documents to extract content (including text, tables, and charts)
+   - Process documents to extract content (including text and tables)
    - Generate embeddings for document chunks
    - Store processed documents and embeddings in PostgreSQL
 
 2. **Query Processing Flow**:
 
    - Analyze queries to extract key information
-   - Select relevant documents based on company and timeframe
+   - Select relevant documents and figures based on company and timeframe
    - Retrieve relevant content using vector similarity search
    - Generate accurate responses with proper citations
-
-3. **Evaluation Flow**:
-   - Generate test suites with questions
-   - Process questions through the system
-   - Evaluate system performance against ground truth
 
 ## Technical Implementation
 
 The system implements the three core technical processes specified in the project requirements:
 
-1. **Preprocessing**: Documents are processed to extract text, tables, and charts, which are then chunked and embedded for efficient retrieval
+1. **Preprocessing**: Documents are processed to extract text and tables which are then chunked and embedded for efficient retrieval
 2. **Document Selection**: The system analyzes queries to determine which 10-K/10-Q documents are relevant
-3. **Relevance Determination**: Vector similarity and reranking are used to identify the most relevant document sections for answering queries
+3. **Relevance Determination**: Vector similarity is used to identify the most relevant document sections for answering queries
 
 ## Installation
 
@@ -82,7 +76,7 @@ The system implements the three core technical processes specified in the projec
 
 3. Build and start the containers:
    ```
-   docker-compose up -d
+   ./scripts/run_prod.sh
    ```
 
 ## Usage
@@ -119,28 +113,6 @@ curl -X POST http://localhost:8000/query \
   -d '{
     "query": "What was Apple's revenue in 2023?"
   }'
-```
-
-### Test Suite and Evaluation
-
-As required by the project specifications, the system includes a comprehensive test suite covering at least 5 different companies over 3 years of filings, with questions targeting various information types (text, tables, charts).
-
-#### Generating a Test Suite
-
-```
-docker-compose exec app python -m farsight2.main test-suite --company AAPL --years 2021 2022 2023 --name apple_test
-```
-
-#### Running an Evaluation
-
-```
-docker-compose exec app python -m farsight2.main evaluate --test-suite apple_test --name apple_evaluation
-```
-
-### Initializing the Database
-
-```
-docker-compose exec app python -m farsight2.main init-db
 ```
 
 ## API Documentation
@@ -201,15 +173,13 @@ farsight2/
 
 The system is designed with the following considerations:
 
-1. **Latency vs. Accuracy**: We've optimized for low query-response latency by preprocessing documents and using vector embeddings, while maintaining high accuracy through contextual retrieval and LLM-based analysis.
+1. **Latency vs. Accuracy**: Optimized for low query-response latency by preprocessing documents and using vector embeddings, while maintaining high accuracy through contextual retrieval and LLM-based analysis.
 
 2. **Source Tracking**: All responses include citations to the original documents, allowing users to verify information and understand its context.
 
 3. **Modularity**: The system uses a modular architecture to facilitate easy updates and component replacement.
 
-4. **Storage Efficiency**: By using PostgreSQL with pgvector, we maintain efficient storage and retrieval without requiring specialized vector database services.
-
-5. **Document Processing**: Special attention is given to properly extracting and representing tables and charts, which are critical in financial documents.
+4. **Storage Efficiency**: By using PostgreSQL with pgvector, maintain efficient storage and retrieval without requiring specialized vector database services.
 
 ## Supported Companies
 
@@ -217,7 +187,7 @@ The system currently has comprehensive test coverage for the following companies
 
 - Apple (AAPL)
 - Microsoft (MSFT)
-- Google/Alphabet (GOOGL)
+- Nvidia (NVDA)
 - Amazon (AMZN)
 - Tesla (TSLA)
 
@@ -225,15 +195,10 @@ The system currently has comprehensive test coverage for the following companies
 
 1. Clone the repository
 2. Create a `.env` file with your OpenAI API key
-3. Run `docker-compose up -d`
-4. Access the API at http://localhost:8000
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgements
-
-- OpenAI for providing the API used for embeddings and language models
-- SEC for providing access to EDGAR filings
-- pgvector for providing vector similarity search in PostgreSQL
+3. Create a poetry env with poetry shell
+4. Run `docker-compose up -d`
+5. Run scripts/load_companies.sh, wait
+6. Interact with the api and/or run scripts/load*companies.sh to load the 5 test companies
+   6a. With test companies loaded, run `poetry run python tests/run_queries.py`
+   6b. Review responses in tests/results/query_result*\*.json
+7. Access the API at http://localhost:8000

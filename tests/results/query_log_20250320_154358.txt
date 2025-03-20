@@ -1,0 +1,90 @@
+2025-03-20T15:43:58.351463: Starting query test run at 20250320_154358
+2025-03-20T15:43:58.351574: Results will be saved to results/query_results_20250320_154358.json
+2025-03-20T15:43:58.351726: Processing query 1: What was Apple's total revenue for fiscal year 2023?
+2025-03-20T15:43:58.351764:   Company: Apple (AAPL), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:44:04.330148:   Success: Response received in 5.98 seconds
+2025-03-20T15:44:08.336698: Processing query 2: What was Apple's net income for fiscal year 2023?
+2025-03-20T15:44:08.336857:   Company: Apple (AAPL), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:44:13.838975:   Success: Response received in 5.50 seconds
+2025-03-20T15:44:17.844757: Processing query 3: How much did Apple spend on research and development in fiscal year 2023?
+2025-03-20T15:44:17.845451:   Company: Apple (AAPL), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:44:22.137880:   Success: Response received in 4.29 seconds
+2025-03-20T15:44:26.145884: Processing query 4: What was Apple's gross margin percentage in fiscal year 2023?
+2025-03-20T15:44:26.146324:   Company: Apple (AAPL), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:44:32.665472:   Success: Response received in 6.52 seconds
+2025-03-20T15:44:36.674610: Processing query 5: What was Apple's cash and cash equivalents at the end of Q3 2023?
+2025-03-20T15:44:36.675151:   Company: Apple (AAPL), Year: 2023, Quarter: 3, Filing: 10-Q
+2025-03-20T15:44:41.394715:   Success: Response received in 4.72 seconds
+2025-03-20T15:44:45.398199: Processing query 6: How many shares did Apple repurchase in fiscal year 2022?
+2025-03-20T15:44:45.398724:   Company: Apple (AAPL), Year: 2022, Quarter: null, Filing: 10-K
+2025-03-20T15:44:50.331388:   Success: Response received in 4.93 seconds
+2025-03-20T15:44:54.337620: Processing query 7: What was Apple's operating income in Q2 2022?
+2025-03-20T15:44:54.337767:   Company: Apple (AAPL), Year: 2022, Quarter: 2, Filing: 10-Q
+2025-03-20T15:44:59.481419:   Success: Response received in 5.14 seconds
+2025-03-20T15:45:03.489678: Processing query 8: What was Microsoft's total revenue for fiscal year 2023?
+2025-03-20T15:45:03.489955:   Company: Microsoft (MSFT), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:45:12.464113:   Success: Response received in 8.97 seconds
+2025-03-20T15:45:16.472045: Processing query 9: How much did Microsoft pay in dividends in 2023?
+2025-03-20T15:45:16.473002:   Company: Microsoft (MSFT), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:45:26.461615:   Success: Response received in 9.99 seconds
+2025-03-20T15:45:30.472938: Processing query 10: What was Microsoft's total assets at the end of fiscal year 2022?
+2025-03-20T15:45:30.473156:   Company: Microsoft (MSFT), Year: 2022, Quarter: null, Filing: 10-K
+2025-03-20T15:45:39.071310:   Success: Response received in 8.60 seconds
+2025-03-20T15:45:43.080648: Processing query 11: What was Microsoft's operating income for Q3 2022?
+2025-03-20T15:45:43.081318:   Company: Microsoft (MSFT), Year: 2022, Quarter: 3, Filing: 10-Q
+2025-03-20T15:45:47.999687:   Success: Response received in 4.92 seconds
+2025-03-20T15:45:52.007690: Processing query 12: What was Microsoft's cloud revenue in Q2 2024?
+2025-03-20T15:45:52.008032:   Company: Microsoft (MSFT), Year: 2024, Quarter: 2, Filing: 10-Q
+2025-03-20T15:45:58.347414:   Success: Response received in 6.34 seconds
+2025-03-20T15:46:02.355434: Processing query 13: What was NVIDIA's total revenue for fiscal year 2023?
+2025-03-20T15:46:02.355992:   Company: NVIDIA (NVDA), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:46:06.521555:   Success: Response received in 4.16 seconds
+2025-03-20T15:46:10.530044: Processing query 14: How much did NVIDIA spend on research and development in 2023?
+2025-03-20T15:46:10.530257:   Company: NVIDIA (NVDA), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:46:15.529661:   Success: Response received in 5.00 seconds
+2025-03-20T15:46:19.536964: Processing query 15: What was NVIDIA's data center revenue in 2023?
+2025-03-20T15:46:19.537455:   Company: NVIDIA (NVDA), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:46:25.072181:   Success: Response received in 5.53 seconds
+2025-03-20T15:46:29.079967: Processing query 16: How many employees did NVIDIA have at the end of 2022?
+2025-03-20T15:46:29.080237:   Company: NVIDIA (NVDA), Year: 2022, Quarter: null, Filing: 10-K
+2025-03-20T15:46:33.438361:   Success: Response received in 4.36 seconds
+2025-03-20T15:46:37.449886: Processing query 17: What was NVIDIA's total revenue for fiscal year 2022 and what was the percentage change from 2021?
+2025-03-20T15:46:37.450098:   Company: NVIDIA (NVDA), Year: 2022, Quarter: null, Filing: 10-K
+2025-03-20T15:46:45.259533:   Success: Response received in 7.81 seconds
+2025-03-20T15:46:49.268152: Processing query 18: What was NVIDIA's operating cash flow in Q3 2022?
+2025-03-20T15:46:49.268857:   Company: NVIDIA (NVDA), Year: 2022, Quarter: 3, Filing: 10-Q
+2025-03-20T15:46:54.358489:   Success: Response received in 5.09 seconds
+2025-03-20T15:46:58.367681: Processing query 19: What was NVIDIA's data center revenue in Q1 2024?
+2025-03-20T15:46:58.367906:   Company: NVIDIA (NVDA), Year: 2024, Quarter: 1, Filing: 10-Q
+2025-03-20T15:47:08.502459:   Success: Response received in 10.13 seconds
+2025-03-20T15:47:12.511046: Processing query 20: What was Amazon's capital expenditure in 2023?
+2025-03-20T15:47:12.511685:   Company: Amazon (AMZN), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:47:18.269628:   Success: Response received in 5.76 seconds
+2025-03-20T15:47:22.279062: Processing query 21: What was Amazon's operating income in Q1 2023?
+2025-03-20T15:47:22.279161:   Company: Amazon (AMZN), Year: 2023, Quarter: 1, Filing: 10-Q
+2025-03-20T15:47:26.898233:   Success: Response received in 4.62 seconds
+2025-03-20T15:47:30.908600: Processing query 22: What was Amazon's long-term debt at the end of 2022?
+2025-03-20T15:47:30.908959:   Company: Amazon (AMZN), Year: 2022, Quarter: null, Filing: 10-K
+2025-03-20T15:47:35.777331:   Success: Response received in 4.87 seconds
+2025-03-20T15:47:39.788754: Processing query 23: What was Amazon's net sales in Q1 2024?
+2025-03-20T15:47:39.788883:   Company: Amazon (AMZN), Year: 2024, Quarter: 1, Filing: 10-Q
+2025-03-20T15:48:08.596257:   Success: Response received in 28.81 seconds
+2025-03-20T15:48:12.609799: Processing query 24: What was Tesla's total operating expenses in 2023?
+2025-03-20T15:48:12.610539:   Company: Tesla (TSLA), Year: 2023, Quarter: null, Filing: 10-K
+2025-03-20T15:48:18.676973:   Success: Response received in 6.07 seconds
+2025-03-20T15:48:22.688888: Processing query 25: What was Tesla's capital expenditure in 2022?
+2025-03-20T15:48:22.689305:   Company: Tesla (TSLA), Year: 2022, Quarter: null, Filing: 10-K
+2025-03-20T15:48:29.179100:   Success: Response received in 6.49 seconds
+2025-03-20T15:48:33.190599: Processing query 26: What was Tesla's revenue from regulatory credits in 2022?
+2025-03-20T15:48:33.190923:   Company: Tesla (TSLA), Year: 2022, Quarter: null, Filing: 10-K
+2025-03-20T15:48:39.109232:   Success: Response received in 5.92 seconds
+2025-03-20T15:48:43.121718: Processing query 27: What was Tesla's cash and cash equivalents at the end of Q3 2022?
+2025-03-20T15:48:43.122110:   Company: Tesla (TSLA), Year: 2022, Quarter: 3, Filing: 10-Q
+2025-03-20T15:48:48.068144:   Success: Response received in 4.95 seconds
+2025-03-20T15:48:52.077291: 
+Test run completed
+2025-03-20T15:48:52.077545: Total questions: 27
+2025-03-20T15:48:52.077960: Successful queries: 27
+2025-03-20T15:48:52.078018: Failed queries: 0
+2025-03-20T15:48:52.078077: Success rate: 100.00%
+2025-03-20T15:48:52.078131: Results saved to results/query_results_20250320_154358.json

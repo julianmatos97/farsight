@@ -13,7 +13,7 @@ from pathlib import Path
 
 # Configuration
 API_URL = "http://localhost:8000/query"
-RESULTS_DIR = Path("results")
+RESULTS_DIR = Path("./results")
 RESULTS_DIR.mkdir(exist_ok=True)
 
 # Create a timestamp for this test run
@@ -58,19 +58,19 @@ def main():
     log_message(f"Results will be saved to {results_file}")
 
     try:
-        with open("tests/test_questions.csv", "r") as csvfile:
+        with open("./test_questions.csv", "r") as csvfile:
             reader = csv.DictReader(csvfile)
 
             for i, row in enumerate(reader, 1):
                 # Extract information
+                # company_ticker,company_name,year,quarter,filing_type,query,answer
                 company = row["company_name"]
                 ticker = row["company_ticker"]
                 year = row["year"]
                 quarter = row["quarter"]
                 filing_type = row["filing_type"]
                 query_text = row["query"]
-                info_type = row["information_type"]
-
+                answer = row["answer"]
                 log_message(f"Processing query {i}: {query_text}")
                 log_message(
                     f"  Company: {company} ({ticker}), Year: {year}, Quarter: {quarter}, Filing: {filing_type}"
@@ -78,6 +78,7 @@ def main():
 
                 # Update statistics
                 results["meta"]["total_questions"] += 1
+                
 
                 # Send the query
                 try:
@@ -116,7 +117,6 @@ def main():
                         "quarter": quarter,
                         "filing_type": filing_type,
                         "query": query_text,
-                        "information_type": info_type,
                         "elapsed_time": elapsed_time,
                         "successful": hasattr(response, "status_code")
                         and 200 <= response.status_code < 300,
@@ -137,7 +137,6 @@ def main():
                             "quarter": quarter,
                             "filing_type": filing_type,
                             "query": query_text,
-                            "information_type": info_type,
                             "successful": False,
                             "error": str(e),
                         }
@@ -148,7 +147,7 @@ def main():
                     json.dump(results, f, indent=2)
 
                 # Optional delay to avoid overwhelming the API
-                time.sleep(10)
+                time.sleep(4)
 
         # Final summary
         log_message("\nTest run completed")

@@ -4,8 +4,8 @@
 # This script makes HTTP calls to generate a complete test suite of documents
 
 API_URL="http://localhost:8000/process"
-TICKERS=("AAPL" "MSFT" "GOOG" "AMZN" "TSLA")
-YEARS=(2020 2021 2022 2023)
+TICKERS=("AAPL" "MSFT" "NVDA" "AMZN" "TSLA")
+YEARS=(2022 2023 2024)
 QUARTERS=(1 2 3 4)
 FILING_TYPES=("10-K" "10-Q")
 
