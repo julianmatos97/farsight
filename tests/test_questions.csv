@@ -1,0 +1,49 @@
+company_ticker,company_name,year,quarter,filing_type,query,information_type
+AAPL,Apple,2023,null,10-K,What was Apple's total revenue for fiscal year 2023?,text
+AAPL,Apple,2023,null,10-K,What were the key risk factors identified in Apple's 2023 annual report?,text
+AAPL,Apple,2023,null,10-K,How much did Apple spend on research and development in 2023?,text
+AAPL,Apple,2023,null,10-K,What were Apple's iPhone sales in 2023 compared to 2022?,table
+AAPL,Apple,2023,3,10-Q,What was Apple's cash position at the end of Q3 2023?,text
+AAPL,Apple,2022,null,10-K,How many shares did Apple repurchase in fiscal year 2022?,text
+AAPL,Apple,2022,2,10-Q,What legal proceedings was Apple involved in during Q2 2022?,text
+AAPL,Apple,2021,null,10-K,What was the compensation for Apple's CEO in 2021?,table
+MSFT,Microsoft,2023,null,10-K,What was Microsoft's revenue from Azure and cloud services in 2023?,text
+MSFT,Microsoft,2023,null,10-K,What acquisitions did Microsoft make in fiscal year 2023?,text
+MSFT,Microsoft,2023,null,10-K,How much did Microsoft return to shareholders through dividends in 2023?,table
+MSFT,Microsoft,2023,2,10-Q,What was Microsoft's effective tax rate in Q2 2023?,text
+MSFT,Microsoft,2022,null,10-K,What were the significant accounting policies changes in Microsoft's 2022 annual report?,text
+MSFT,Microsoft,2022,3,10-Q,What was Microsoft's operating income for Q3 2022?,table
+MSFT,Microsoft,2021,null,10-K,How many employees did Microsoft have at the end of fiscal year 2021?,text
+MSFT,Microsoft,2021,1,10-Q,What was Microsoft's unearned revenue in Q1 2021?,table
+GOOG,Alphabet,2023,null,10-K,What was Google's advertising revenue in 2023?,text
+GOOG,Alphabet,2023,null,10-K,What were the main regulatory challenges mentioned in Alphabet's 2023 annual report?,text
+GOOG,Alphabet,2023,null,10-K,How much did Alphabet invest in its Other Bets segment in 2023?,table
+GOOG,Alphabet,2023,2,10-Q,What was YouTube's revenue in Q2 2023?,text
+GOOG,Alphabet,2022,null,10-K,What was Alphabet's headcount at the end of 2022?,text
+GOOG,Alphabet,2022,null,10-K,What were the year-over-year trends in Google Search revenue from 2021 to 2022?,chart
+GOOG,Alphabet,2022,3,10-Q,What was Alphabet's free cash flow in Q3 2022?,text
+GOOG,Alphabet,2021,null,10-K,What were the primary growth drivers mentioned in Alphabet's 2021 annual report?,text
+GOOG,Alphabet,2021,null,10-K,What was the total compensation for Alphabet's top executives in 2021?,table
+GOOG,Alphabet,2021,4,10-Q,What was Google Cloud's operating loss or profit in Q4 2021?,text
+AMZN,Amazon,2023,null,10-K,What was Amazon's revenue from AWS in 2023?,text
+AMZN,Amazon,2023,null,10-K,What were Amazon's major capital investments in 2023?,text
+AMZN,Amazon,2023,1,10-Q,What was Amazon's international segment operating income in Q1 2023?,text
+AMZN,Amazon,2022,null,10-K,What was Amazon's total long-term debt at the end of 2022?,text
+AMZN,Amazon,2022,null,10-K,What percentage of Amazon's revenue came from third-party seller services in 2022?,table
+AMZN,Amazon,2022,2,10-Q,What was Amazon's effective tax rate in Q2 2022?,text
+AMZN,Amazon,2021,null,10-K,How many full-time and part-time employees did Amazon have at the end of 2021?,text
+AMZN,Amazon,2021,3,10-Q,What was Amazon's marketing expense in Q3 2021?,table
+TSLA,Tesla,2023,null,10-K,What was Tesla's automotive revenue in 2023?,text
+TSLA,Tesla,2023,null,10-K,What was Tesla's vehicle production and delivery numbers for 2023?,table
+TSLA,Tesla,2023,null,10-K,What were the key challenges in Tesla's supply chain mentioned in the 2023 annual report?,text
+TSLA,Tesla,2022,null,10-K,How much did Tesla invest in new gigafactories in 2022?,text
+TSLA,Tesla,2022,null,10-K,What was Tesla's revenue from regulatory credits in 2022 compared to 2021?,table
+TSLA,Tesla,2022,3,10-Q,What was Tesla's cash and cash equivalents at the end of Q3 2022?,text
+TSLA,Tesla,2021,null,10-K,What were Tesla's research and development expenses in 2021?,table
+TSLA,Tesla,2021,null,10-K,What was Tesla's revenue breakdown by geographic region in 2021?,chart
+TSLA,Tesla,2021,1,10-Q,What was Tesla's energy generation and storage revenue in Q1 2021?,text
+AAPL,Apple,2020,null,10-K,What was Apple's dividend per share in fiscal year 2020?,text
+MSFT,Microsoft,2020,null,10-K,What was Microsoft's commercial cloud revenue in 2020?,text
+GOOG,Alphabet,2020,null,10-K,What was Alphabet's traffic acquisition cost in 2020?,table
+AMZN,Amazon,2020,null,10-K,What was Amazon's North America segment operating income in 2020?,text
+TSLA,Tesla,2020,null,10-K,What was Tesla's automotive gross margin in 2020?,table 

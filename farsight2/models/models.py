@@ -122,15 +122,11 @@ class RelevantChunk(BaseModel):
 class Citation(BaseModel):
     """Citation for a piece of information."""
 
-    document_id: str = Field(..., description="Document ID")
-    filing_type: str = Field(..., description="Filing type")
-    company: str = Field(..., description="Company name or ticker")
-    year: int = Field(..., description="Filing year")
-    quarter: Optional[int] = Field(None, description="Filing quarter")
-    location: str = Field(..., description="Location in the document")
-    content: str = Field(..., description="Cited content")
-    content_type: str = Field(
-        ..., description="Type of content (text, table, chart, xbrl_fact)"
+    document_id: Optional[str] = Field(None, description="Document ID")
+    location: Optional[str] = Field(None, description="Location in the document")
+    content: Optional[str] = Field(None, description="Cited content")
+    content_type: Optional[str] = Field(
+        None, description="Type of content (text, table, chart, xbrl_fact)"
     )
     fact_id: Optional[str] = Field(
         None, description="ID of the XBRL fact if applicable"
@@ -288,13 +284,6 @@ class FactValue(BaseModel):
     )
     decimals: Optional[int] = Field(None, description="Decimal precision")
 
-    # Derived metrics
-    year_over_year_change: Optional[float] = Field(
-        None, description="YoY percentage change"
-    )
-    quarter_over_quarter_change: Optional[float] = Field(
-        None, description="QoQ percentage change"
-    )
     form: Optional[str] = Field("", description="Form (10-K, 10-Q, etc.)")
 
 

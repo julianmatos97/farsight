@@ -11,7 +11,6 @@ import os
 from typing import List, Dict, Any, Optional, Tuple
 
 from openai import OpenAI
-import numpy as np
 
 from farsight2.models.models import (
     DocumentChunk,
@@ -22,9 +21,7 @@ from farsight2.models.models import (
     DocumentMetadata,
     Fact,
 )
-from dotenv import load_dotenv
-
-load_dotenv()
+from farsight2.config import OPENAI_API_KEY, EMBEDDING_MODEL, CHAT_MODEL
 logger = logging.getLogger(__name__)
 
 
@@ -44,19 +41,17 @@ class UnifiedEmbeddingService:
             api_key: OpenAI API key (defaults to environment variable)
             repository: Repository for database access (defaults to a new instance)
         """
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.api_key = api_key or OPENAI_API_KEY
         self.api_key = "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"
         if not self.api_key:
             raise ValueError("OpenAI API key is required")
 
         self.client = OpenAI(api_key=self.api_key)
         self.repository = repository
-        self.response_model = "gpt-4o"
+        self.response_model = CHAT_MODEL
 
         # Default embedding model
-        self.embedding_model = os.environ.get(
-            "EMBEDDING_MODEL", "text-embedding-3-large"
-        )
+        self.embedding_model = EMBEDDING_MODEL
 
     def embed_fact(self, fact: Fact) -> List[float]:
         """

@@ -2,7 +2,6 @@
 
 import logging
 import json
-import os
 from typing import List
 
 from openai import OpenAI

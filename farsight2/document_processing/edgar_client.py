@@ -1,7 +1,6 @@
 """Client for downloading 10-K/10-Q filings from the SEC EDGAR database."""
 
 import logging
-from pydantic import BaseModel
 import requests
 import time
 from typing import Optional, Dict, Any, List, Tuple
@@ -89,10 +88,9 @@ class EdgarClient:
 
         # Log a simpler message and dump the full data to a file for inspection
         logger.info(f"Fetched company filings for {ticker}")
-     
 
         # Cache the CIK if we found it
-        if data and not ticker.upper() in self.cik_cache:
+        if data and ticker.upper() not in self.cik_cache:
             self.cik_cache[ticker.upper()] = cik
             self._save_cik_cache()
 
@@ -127,7 +125,7 @@ class EdgarClient:
         form_array = recent_filings.get("form", [])
         filing_date_array = recent_filings.get("filingDate", [])
         accession_number_array = recent_filings.get("accessionNumber", [])
-        primary_document_array = recent_filings.get("primaryDocument", [])
+        # primary_document_array = recent_filings.get("primaryDocument", [])
         if not form_array or not filing_date_array or not accession_number_array:
             raise Exception(f"Missing filing data for {ticker}")
 
@@ -407,7 +405,7 @@ class EdgarClient:
                             try:
                                 # Extract value data
                                 val = value.get("val", 0)
-                                filed_date = value.get("filed", "")
+                                # filed_date = value.get("filed", "")
                                 form = value.get("form", "")
                                 accn = value.get("accn", "")
                                 fy = value.get("fy", 0)
@@ -628,7 +626,6 @@ class EdgarClient:
             # Calculate key financial ratios
             revenue_values = fact_value_groups.get("us-gaap:Revenue", [])
             net_income_values = fact_value_groups.get("us-gaap:NetIncome", [])
-            assets_values = fact_value_groups.get("us-gaap:Assets", [])
 
             # Calculate profit margin for each matching period
             for rev in revenue_values:

@@ -4,7 +4,6 @@
 
 from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text, JSON, Float
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm.relationships import _RelationshipDeclared
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
 
@@ -160,8 +159,6 @@ class FactValue(Base):
     fiscal_period = Column(Integer, nullable=True)
     unit = Column(String, default="USD")
     decimals = Column(Integer, nullable=True)
-    year_over_year_change = Column(Float, nullable=True)
-    quarter_over_quarter_change = Column(Float, nullable=True)
     form = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 

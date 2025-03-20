@@ -232,7 +232,7 @@ class DocumentRepository:
             filing_type=document.filing_type,
             filing_date=document.filing_date,
         )
-    
+
 
 class ChunkRepository:
     """Repository for document chunk operations."""
@@ -657,7 +657,7 @@ class FactRepository:
             List of facts
         """
         return self.db.query(Fact).all()
-    
+
     def update_fact(self, fact: Fact) -> Fact:
         """Update a fact.
 
@@ -717,8 +717,6 @@ class FactRepository:
             fiscal_period=fact_value.fiscal_period,
             unit=fact_value.unit,
             decimals=fact_value.decimals,
-            year_over_year_change=fact_value.year_over_year_change,
-            quarter_over_quarter_change=fact_value.quarter_over_quarter_change,
             form=fact_value.form,
         )
         self.db.add(db_fact_value)
@@ -771,8 +769,6 @@ class FactRepository:
             fiscal_period=fact_value.fiscal_period,
             unit=fact_value.unit,
             decimals=fact_value.decimals,
-            year_over_year_change=fact_value.year_over_year_change,
-            quarter_over_quarter_change=fact_value.quarter_over_quarter_change,
             form=fact_value.form,
         )
 
@@ -786,7 +782,7 @@ class FactRepository:
             List of fact values
         """
         return self.db.query(FactValue).filter(FactValue.fact_id == fact_id).all()
-    
+
     def get_fact_value_by_details(
         self,
         fact_id: str,
@@ -808,10 +804,14 @@ class FactRepository:
             Fact value if found, None otherwise
         """
         document_id = generate_document_id(ticker, year, quarter, filing_type)
-        return self.db.query(FactValue).filter(
-            FactValue.fact_id == fact_id,
-            FactValue.document_id == document_id,
-        ).first()
+        return (
+            self.db.query(FactValue)
+            .filter(
+                FactValue.fact_id == fact_id,
+                FactValue.document_id == document_id,
+            )
+            .first()
+        )
 
     def get_fact_values_by_details(
         self,
@@ -844,7 +844,7 @@ class FactRepository:
             )
             .order_by(FactValue.document_id.desc())
             .limit(30)
-            .all() 
+            .all()
         )
 
     def search_facts_by_embedding(
@@ -868,13 +868,13 @@ class FactRepository:
             self.db.query(
                 Fact, Fact.embedding.cosine_distance(query_vector).label("distance")
             )
-            .filter(Fact.embedding != None)
+            .filter(Fact.embedding is not None)
             .order_by("distance")
             .limit(top_k)
             .all()
         )
 
-        print(f"Results: {results}")
+        
         # Convert distance to similarity score (cosine distance = 1 - cosine similarity)
         return [fact for fact, _ in results]
 

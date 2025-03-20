@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
@@ -28,9 +28,10 @@ from farsight2.database.repository import (
 )
 from dotenv import load_dotenv
 import traceback
-
-load_dotenv()
 from farsight2.database.unified_repository import UnifiedRepository
+load_dotenv()
+from farsight2.config import OPENAI_API_KEY
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -83,14 +84,10 @@ class QueryRequest(BaseModel):
 class CitationModel(BaseModel):
     """Model for citation information in query responses."""
 
-    document_id: str = Field(..., description="Document ID")
-    filing_type: str = Field(..., description="Filing type")
-    company: str = Field(..., description="Company ticker or name")
-    year: int = Field(..., description="Filing year")
-    quarter: Optional[int] = Field(None, description="Filing quarter (for 10-Q)")
-    location: str = Field(..., description="Location in the document")
-    content: str = Field(..., description="Cited content")
-    content_type: str = Field(..., description="Content type")
+    document_id: Optional[str] = Field(None, description="Document ID")
+    location: Optional[str] = Field(None, description="Location in the document")
+    content: Optional[str] = Field(None, description="Cited content")
+    content_type: Optional[str] = Field(None, description="Content type")
     fact_id: Optional[str] = Field(None, description="Fact ID")
 
 
@@ -112,7 +109,7 @@ def get_components(db: Session = Depends(get_db_session)):
     Initializes and provides access to all major system components.
     """
     # Initialize components
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = OPENAI_API_KEY
     if not api_key:
         raise HTTPException(status_code=500, detail="OpenAI API key not found")
 
@@ -130,9 +127,7 @@ def get_components(db: Session = Depends(get_db_session)):
     query_analyzer = QueryAnalyzer(api_key=api_key)
     document_selector = DocumentSelector()
     content_retriever = ContentRetriever(embedding_service, unified_repository)
-    response_generator = ResponseGenerator(
-        document_repo.get_document_metadata_store(), api_key=api_key
-    )
+    response_generator = ResponseGenerator(api_key=api_key)
 
     return {
         "edgar_client": edgar_client,
@@ -185,14 +180,12 @@ async def process_document(
             )
 
         # Validate quarter
-        if  request.quarter not in [1, 2, 3, 4]:
-            raise HTTPException(
-                status_code=400, detail="Quarter must be 1, 2, 3, or 4"
-            )
+        if request.quarter not in [1, 2, 3, 4]:
+            raise HTTPException(status_code=400, detail="Quarter must be 1, 2, 3, or 4")
 
         # Get company filings
         try:
-            filings = edgar_client.get_company_filings(request.ticker)
+            edgar_client.get_company_filings(request.ticker)
         except Exception as e:
             logger.error(f"Error getting company filings: {e}")
             raise HTTPException(
@@ -221,7 +214,6 @@ async def process_document(
                 facts, _ = edgar_client.download_xbrl_facts(request.ticker)
             else:
                 facts = []
-                fact_values = []
         except Exception as e:
             logger.error(f"Error downloading XBRL facts: {e}")
             raise HTTPException(
@@ -386,11 +378,22 @@ async def query(
                         for filing_type in ["10K", "10Q"]:
                             for i, fact in enumerate(relevant_facts):
                                 # Get fact values for this company and year
-                                values_for_fact = unified_repository.get_fact_values_by_details(
-                                    fact.fact_id, company, year, quarter, filing_type
+                                values_for_fact = (
+                                    unified_repository.get_fact_values_by_details(
+                                        fact.fact_id,
+                                        company,
+                                        year,
+                                        quarter,
+                                        filing_type,
+                                    )
                                 )
                                 if values_for_fact:
-                                    fact_values.extend([(fact_value, relevant_facts[i].description) for fact_value in values_for_fact])
+                                    fact_values.extend(
+                                        [
+                                            (fact_value, relevant_facts[i].description)
+                                            for fact_value in values_for_fact
+                                        ]
+                                    )
             logger.info(f"Fact values: {fact_values}")
 
         except Exception as e:
@@ -424,10 +427,7 @@ async def query(
         citations = [
             CitationModel(
                 document_id=citation.document_id,
-                filing_type=citation.filing_type,
-                company=citation.company,
-                year=citation.year,
-                quarter=citation.quarter,
+
                 location=citation.location,
                 content=citation.content,
                 content_type=citation.content_type,  # Added content type for better source tracking
@@ -443,7 +443,9 @@ async def query(
             "response": formatted_response.response,
             "citations": citations,
             "documents_used": [doc.document_id for doc in document_references],
-            "facts_used": [fact_value[0] for fact_value in fact_values] if fact_values else [],
+            "facts_used": [fact_value[0] for fact_value in fact_values]
+            if fact_values
+            else [],
         }
     except HTTPException:
         raise

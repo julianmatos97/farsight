@@ -1,15 +1,14 @@
 """Response generator for generating responses based on relevant content."""
 
 import logging
-import os
 import json
 import re
 from typing import List, Dict, Any, Optional, Tuple
 
 from openai import OpenAI
 
+from farsight2.config import CHAT_MODEL, OPENAI_API_KEY
 from farsight2.models.models import (
-    Fact,
     RelevantChunk,
     Citation,
     FormattedResponse,
@@ -18,13 +17,10 @@ from farsight2.models.models import (
 
 logger = logging.getLogger(__name__)
 
-
 class ResponseGenerator:
     """Generator for creating responses based on relevant content."""
 
-    def __init__(
-        self, api_key: Optional[str] = None
-    ):
+    def __init__(self, api_key: Optional[str] = None):
         """Initialize the response generator.
 
         Args:
@@ -33,7 +29,7 @@ class ResponseGenerator:
         """
         logger.info("Initializing ResponseGenerator")
 
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.api_key = api_key or OPENAI_API_KEY
         if not self.api_key:
             logger.error("OpenAI API key not provided")
             raise ValueError("OpenAI API key is required")
@@ -42,7 +38,7 @@ class ResponseGenerator:
         logger.debug("OpenAI client initialized")
 
         # Default model for response generation
-        self.model = "gpt-4o"
+        self.model = CHAT_MODEL
         logger.info(f"Using model: {self.model}")
 
     def generate_response(
@@ -88,10 +84,8 @@ class ResponseGenerator:
         # Prepare context from XBRL facts
         fact_context = []
 
-
         if relevant_fact_values:
             for fact_value, description in relevant_fact_values:  # type: Tuple[FactValue, str]
-                
                 logger.debug(f"Processing fact value: {fact_value.fact_id}")
                 fact_info = {
                     "fact_id": fact_value.fact_id,
@@ -208,7 +202,7 @@ class ResponseGenerator:
         for i, entry in enumerate(source_entries):
             entry = entry.strip()
             logger.debug(f"Processing source entry {i + 1}: {entry[:50]}...")
-
+            
             # Try to match with document chunks
             chunk_matched = False
             for chunk in chunk_context:
@@ -219,10 +213,6 @@ class ResponseGenerator:
                     citations.append(
                         Citation(
                             document_id=chunk["document_id"],
-                            filing_type=chunk["filing_type"],
-                            company=chunk["company"],
-                            year=chunk["year"],
-                            quarter=chunk["quarter"],
                             location=chunk["location"],
                             content=chunk["content"],
                             content_type=chunk["content_type"],
@@ -239,13 +229,9 @@ class ResponseGenerator:
                     for value in fact["values"]:
                         citations.append(
                             Citation(
-                                document_id=value["document_id"],
-                                filing_type="Fact Value",
-                                company=value.get("ticker", "Unknown"),
-                                year=value["fiscal_year"],
-                                quarter=None,
-                                location=f"",
-                                content=f"{value['value']}",
+                                document_id=value.get("document_id"),
+                                location=f"{value.get('fiscal_year')} {value.get('fiscal_period')}",
+                                content=f"{value.get('value')}",
                                 content_type="fact_value",
                                 fact_id=fact.get("fact_id", "Unknown"),
                             )

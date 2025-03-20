@@ -189,7 +189,6 @@ class UnifiedRepository:
         table = self._repos["table"].get_table(chunk_id)
         return self._repos["table"].to_model(table) if table else None
 
-
     def create_fact(self, fact: Fact) -> Fact:
         """
         Create a fact definition in the database.
@@ -203,7 +202,7 @@ class UnifiedRepository:
         try:
             db_fact = self._repos["fact"].create_fact(fact)
             return self._repos["fact"].fact_to_model(db_fact)
-        except Exception as e:
+        except Exception:
             return None
 
     def get_fact(self, fact_id: str) -> Optional[Fact]:
@@ -228,7 +227,7 @@ class UnifiedRepository:
         """
         facts = self._repos["fact"].get_all_facts()
         return [self._repos["fact"].fact_to_model(fact) for fact in facts]
-    
+
     def update_fact(self, fact: Fact) -> Fact:
         """Update a fact."""
         db_fact = self._repos["fact"].update_fact(fact)
@@ -315,7 +314,7 @@ class UnifiedRepository:
             if db_fact_value
             else None
         )
-    
+
     def get_fact_values_by_details(
         self,
         fact_id: str,

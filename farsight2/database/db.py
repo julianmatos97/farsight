@@ -11,20 +11,23 @@ from typing import Any, Dict
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from farsight2.config import DATABASE_URL
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Get database URL from environment
-# Use different defaults based on environment (Docker vs local)
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    # Default to Docker-compatible URL if no environment variable set
-    "postgresql://postgres:postgres@localhost:5432/postgres",
-)
 
 # Create engine and session
-engine = create_engine(DATABASE_URL)
+
+# Create engine and session
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=20,  # Increase from default 5
+    max_overflow=20,  # Increase from default 10
+    pool_timeout=60,  # Increase timeout from 30 seconds
+    pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_pre_ping=True,  # Verify connections before using them
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -104,5 +107,5 @@ def get_connection_params() -> Dict[str, Any]:
         "port": int(host_port[1]) if len(host_port) > 1 else 5432,
         "database": host_parts[1],
     }
-
     return params
+

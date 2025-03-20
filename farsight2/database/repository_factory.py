@@ -1,6 +1,6 @@
 """Factory for creating repository instances."""
 
-from typing import Any, Dict, Union
+from typing import Dict, Union
 
 from farsight2.database.db import get_db_session
 from farsight2.database.repository import (
@@ -12,6 +12,7 @@ from farsight2.database.repository import (
     TextChunkRepository,
     TableRepository,
 )
+
 
 class RepositoryFactory:
     """Factory for creating repository instances."""
@@ -40,11 +41,7 @@ class RepositoryFactory:
         session = get_db_session()
         return EmbeddingRepository(session)
 
-    @staticmethod
-    def create_test_suite_repository():
-        """Create a test suite repository."""
-        session = get_db_session()
-        return TestSuiteRepository(session)
+
 
     @staticmethod
     def create_text_chunk_repository():

@@ -2,7 +2,6 @@
 
 import logging
 import re
-import os
 import json
 from typing import List, Dict, Optional
 from datetime import datetime
@@ -12,6 +11,7 @@ from openai import OpenAI
 from farsight2.database.unified_repository import UnifiedRepository
 from farsight2.embedding.unified_embedding_service import UnifiedEmbeddingService
 from farsight2.models.models import QueryAnalysis
+from farsight2.config import OPENAI_API_KEY, CHAT_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class QueryAnalyzer:
         Args:
             api_key: OpenAI API key
         """
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.api_key = api_key or OPENAI_API_KEY
         if not self.api_key:
             raise ValueError("OpenAI API key is required")
 
@@ -35,7 +35,7 @@ class QueryAnalyzer:
         self.embedding_service = UnifiedEmbeddingService()
 
         # Default model for query analysis
-        self.model = "gpt-4o"
+        self.model = CHAT_MODEL
 
     def analyze_query(self, query: str) -> QueryAnalysis:
         """Analyze a query to extract key information.
@@ -48,7 +48,6 @@ class QueryAnalyzer:
         """
         logger.info(f"Analyzing query: {query}")
 
-    
         llm_analysis = self._llm_analyze_query(query)
 
         # Merge results, preferring regex results when available

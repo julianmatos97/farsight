@@ -1,11 +1,11 @@
 """Document selector for determining which documents are needed for a query."""
 
 import logging
-from typing import List, Dict
+from typing import List
 from datetime import datetime
 
 
-from farsight2.models.models import QueryAnalysis, DocumentReference, DocumentMetadata
+from farsight2.models.models import QueryAnalysis, DocumentReference
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +14,7 @@ class DocumentSelector:
     """Selector for determining which documents are needed for a query."""
 
     def __init__(self):
-        """Initialize the document selector.
-
-        Args:
-            document_registry: Dictionary mapping company tickers to lists of document metadata
-        """
+        """Initialize the document selector."""
         from farsight2.database.unified_repository import UnifiedRepository
 
         self.repository = UnifiedRepository()
